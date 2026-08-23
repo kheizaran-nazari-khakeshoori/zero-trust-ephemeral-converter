@@ -1,0 +1,19 @@
+```text
+# Environment Variables
+.env
+.env.local
+
+# Dependencies
+node_modules/
+venv/
+__pycache__/
+
+# Database / Storage Artifacts
+*.db
+*.sqlite
+uploads/
+temp/
+
+# System / OS
+.DS_Store
+Thumbs.db
