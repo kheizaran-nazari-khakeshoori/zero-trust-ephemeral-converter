@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SecureConvert | Zero-Knowledge File Conversion</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background-color: #0f172a;
+      color: #f8fafc;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+    }
+    .card {
+      background: #1e293b;
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+      width: 100%;
+      max-width: 480px;
+      text-align: center;
+    }
+    .drop-zone {
+      border: 2px dashed #3b82f6;
+      border-radius: 8px;
+      padding: 2.5rem 1rem;
+      margin: 1.5rem 0;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+    .drop-zone:hover {
+      background: rgba(59, 130, 246, 0.1);
+    }
+    button {
+      background: #2563eb;
+      color: white;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      font-size: 1rem;
+      border-radius: 6px;
+      cursor: pointer;
+      width: 100%;
+    }
+    button:disabled {
+      background: #475569;
+      cursor: not-allowed;
+    }
+    #status {
+      margin-top: 1rem;
+      font-size: 0.9rem;
+      word-break: break-all;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <h2>🔒 SecureConvert</h2>
+    <p>Ephemeral, In-Memory File Processing</p>
+
+    <div class="drop-zone" id="dropZone">
+      <p id="fileLabel">Drag & drop a file here or click to select</p>
+      <input type="file" id="fileInput" hidden>
+    </div>
+
+    <button id="uploadBtn" disabled>Upload & Convert</button>
+
+    <div id="status"></div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
