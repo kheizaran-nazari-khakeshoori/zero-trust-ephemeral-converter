@@ -3,6 +3,7 @@ import helmet from 'helmet';
 import cors from 'cors';
 import rateLimit from 'express-rate-limit';
 import multer from 'multer';
+import { validateMagicBytes } from './fileValidator.js';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -33,17 +34,21 @@ app.post('/api/convert', upload.single('file'), (req, res) => {
     return res.status(400).json({ error: 'No file uploaded.' });
   }
 
-  // The file is accessible in memory via req.file.buffer
-  console.log(`Received file: ${req.file.originalname} (${req.file.size} bytes) in memory.`);
+  // Inspect the binary buffer headers
+  const detectedType = validateMagicBytes(req.file.buffer);
 
-  // Example transformation step (Buffer in RAM)
-  const fileContent = req.file.buffer.toString('utf-8');
-  
-  // Return converted content response directly
+  if (!detectedType) {
+    return res.status(400).json({ 
+      error: 'Security Alert: Invalid or unverified file signature detected. File rejected.' 
+    });
+  }
+
+  console.log(`Verified File Type: ${detectedType.toUpperCase()} | Size: ${req.file.size} bytes`);
+
   res.json({
-    message: 'File successfully processed entirely in RAM!',
+    message: `File verified as valid [${detectedType.toUpperCase()}] and processed safely in RAM!`,
     filename: req.file.originalname,
-    bytesProcessed: req.file.size
+    detectedType: detectedType
   });
 });
 
