@@ -25,4 +25,4 @@ export function validateMagicBytes(buffer) {
   // Return plain text if valid ASCII range, otherwise null for unknown binary
   const isAscii = buffer.slice(0, 100).every(byte => byte >= 0x09 && byte <= 0x7e);
   return isAscii ? 'txt' : null;
-}git 
+}
