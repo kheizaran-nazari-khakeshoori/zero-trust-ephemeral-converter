@@ -35,6 +35,17 @@
     .drop-zone:hover {
       background: rgba(59, 130, 246, 0.1);
     }
+    select {
+      width: 100%;
+      padding: 0.75rem;
+      margin-bottom: 1.25rem;
+      border-radius: 6px;
+      background: #334155;
+      color: white;
+      border: 1px solid #475569;
+      font-size: 1rem;
+      box-sizing: border-box;
+    }
     button {
       background: #2563eb;
       color: white;
@@ -44,6 +55,7 @@
       border-radius: 6px;
       cursor: pointer;
       width: 100%;
+      font-weight: 600;
     }
     button:disabled {
       background: #475569;
@@ -66,6 +78,12 @@
       <p id="fileLabel">Drag & drop a file here or click to select</p>
       <input type="file" id="fileInput" hidden>
     </div>
+
+    <label for="formatSelect" style="display: block; text-align: left; font-size: 0.85rem; margin-bottom: 0.4rem; color: #94a3b8;">Choose Output Format:</label>
+    <select id="formatSelect">
+      <option value="html">Convert Text/Markdown to HTML (.html)</option>
+      <option value="csv">Convert JSON to CSV (.csv)</option>
+    </select>
 
     <button id="uploadBtn" disabled>Upload & Convert</button>
 
