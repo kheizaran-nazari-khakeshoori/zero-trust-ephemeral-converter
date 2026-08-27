@@ -4,6 +4,7 @@ import cors from 'cors';
 import rateLimit from 'express-rate-limit';
 import multer from 'multer';
 import { validateMagicBytes } from './fileValidator.js';
+import { convertMarkdownToHtml, convertJsonToCsv } from './converter.js';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -34,22 +35,39 @@ app.post('/api/convert', upload.single('file'), (req, res) => {
     return res.status(400).json({ error: 'No file uploaded.' });
   }
 
-  // Inspect the binary buffer headers
   const detectedType = validateMagicBytes(req.file.buffer);
+  const targetFormat = req.body.targetFormat || 'html';
 
   if (!detectedType) {
     return res.status(400).json({ 
-      error: 'Security Alert: Invalid or unverified file signature detected. File rejected.' 
+      error: 'Security Alert: Invalid or unverified file signature detected.' 
     });
   }
 
-  console.log(`Verified File Type: ${detectedType.toUpperCase()} | Size: ${req.file.size} bytes`);
+  console.log(`Processing ${req.file.originalname} (${detectedType}) -> ${targetFormat}`);
 
-  res.json({
-    message: `File verified as valid [${detectedType.toUpperCase()}] and processed safely in RAM!`,
-    filename: req.file.originalname,
-    detectedType: detectedType
-  });
+  const rawContent = req.file.buffer.toString('utf-8');
+
+  // Convert Markdown/Text to HTML
+  if (targetFormat === 'html') {
+    const convertedHtml = convertMarkdownToHtml(rawContent);
+    res.setHeader('Content-Type', 'text/html');
+    res.setHeader('Content-Disposition', `attachment; filename="converted_${Date.now()}.html"`);
+    return res.send(convertedHtml);
+  }
+
+  // Convert JSON to CSV
+  if (targetFormat === 'csv') {
+    const convertedCsv = convertJsonToCsv(req.file.buffer);
+    if (!convertedCsv) {
+      return res.status(400).json({ error: 'Invalid JSON array structure for CSV conversion.' });
+    }
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="converted_${Date.now()}.csv"`);
+    return res.send(convertedCsv);
+  }
+
+  res.status(400).json({ error: 'Unsupported target format.' });
 });
 
 app.listen(PORT, () => {
