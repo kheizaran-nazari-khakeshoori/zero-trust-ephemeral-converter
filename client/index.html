@@ -10,10 +10,13 @@
       background-color: #0f172a;
       color: #f8fafc;
       display: flex;
+      flex-direction: column;
       justify-content: center;
       align-items: center;
       min-height: 100vh;
       margin: 0;
+      padding: 2rem 1rem;
+      box-sizing: border-box;
     }
     .card {
       background: #1e293b;
@@ -23,6 +26,7 @@
       width: 100%;
       max-width: 480px;
       text-align: center;
+      margin-bottom: 1.5rem;
     }
     .drop-zone {
       border: 2px dashed #3b82f6;
@@ -35,23 +39,23 @@
     .drop-zone:hover {
       background: rgba(59, 130, 246, 0.1);
     }
-    select {
+    input[type="email"], input[type="password"], input[type="text"], select {
       width: 100%;
       padding: 0.75rem;
-      margin-bottom: 1.25rem;
+      margin-bottom: 1rem;
       border-radius: 6px;
       background: #334155;
       color: white;
       border: 1px solid #475569;
-      font-size: 1rem;
+      font-size: 0.95rem;
       box-sizing: border-box;
     }
     button {
       background: #2563eb;
       color: white;
       border: none;
-      padding: 0.75rem 1.5rem;
-      font-size: 1rem;
+      padding: 0.75rem 1.25rem;
+      font-size: 0.95rem;
       border-radius: 6px;
       cursor: pointer;
       width: 100%;
@@ -61,18 +65,50 @@
       background: #475569;
       cursor: not-allowed;
     }
-    #status {
+    .status-msg {
       margin-top: 1rem;
-      font-size: 0.9rem;
+      font-size: 0.85rem;
       word-break: break-all;
     }
   </style>
 </head>
 <body>
 
+  <!-- Card 1: 3-Step Authentication System -->
+  <div class="card" id="authCard">
+    <h2 style="margin-top: 0;">🔐 3-Step Authentication</h2>
+    
+    <!-- Step 1 Form -->
+    <div id="step1Box">
+      <input type="email" id="authEmail" placeholder="Email Address">
+      <input type="password" id="authPassword" placeholder="Password (min 8 chars)">
+      <div style="display: flex; gap: 0.5rem;">
+        <button id="regBtn" style="background: #475569;">Register</button>
+        <button id="login1Btn">Step 1: Password Login</button>
+      </div>
+    </div>
+
+    <!-- Step 2 Form -->
+    <div id="step2Box" style="display: none;">
+      <p style="font-size: 0.85rem; color: #94a3b8;">Enter 6-digit TOTP code from Authenticator App:</p>
+      <input type="text" id="totpCode" placeholder="123456" maxlength="6">
+      <button id="login2Btn">Step 2: Verify TOTP Code</button>
+    </div>
+
+    <!-- Step 3 Form -->
+    <div id="step3Box" style="display: none;">
+      <p style="font-size: 0.85rem; color: #94a3b8;">Verify Security Token / Passkey:</p>
+      <input type="text" id="secToken" placeholder="Paste Security Key">
+      <button id="login3Btn">Step 3: Verify Security Key</button>
+    </div>
+
+    <div class="status-msg" id="authStatus"></div>
+  </div>
+
+  <!-- Card 2: Zero-Knowledge File Converter -->
   <div class="card">
-    <h2>🔒 SecureConvert</h2>
-    <p>Ephemeral, In-Memory File Processing</p>
+    <h2 style="margin-top: 0;">🔒 SecureConvert</h2>
+    <p style="font-size: 0.85rem; color: #94a3b8;">Ephemeral, In-Memory File Processing</p>
 
     <div class="drop-zone" id="dropZone">
       <p id="fileLabel">Drag & drop a file here or click to select</p>
@@ -87,7 +123,7 @@
 
     <button id="uploadBtn" disabled>Upload & Convert</button>
 
-    <div id="status"></div>
+    <div class="status-msg" id="status"></div>
   </div>
 
   <script src="app.js"></script>
