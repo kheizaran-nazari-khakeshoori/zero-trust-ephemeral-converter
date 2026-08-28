@@ -5,6 +5,7 @@ import rateLimit from 'express-rate-limit';
 import multer from 'multer';
 import { validateMagicBytes } from './fileValidator.js';
 import { convertMarkdownToHtml, convertJsonToCsv } from './converter.js';
+import authRoutes from './authRoutes.js';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -12,24 +13,30 @@ const PORT = process.env.PORT || 5000;
 // 1. Security Headers (CSP, HSTS, X-Frame-Options)
 app.use(helmet());
 
-// 2. Cross-Origin Resource Sharing Protection
+// 2. Body Parsing Middleware (NEW - Put this here!)
+app.use(express.json());
+
+// 3. Cross-Origin Resource Sharing Protection
 app.use(cors({ origin: 'http://localhost:3000' }));
 
-// 3. Rate Limiting (Prevents Brute Force Attacks)
+// 4. Rate Limiting (Prevents Brute Force Attacks)
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100 // limit each IP to 100 requests per windowMs
 });
 app.use(limiter);
 
-// 4. In-Memory File Upload Config (Zero Disk Persistence)
+// 5. Authentication API Routes (NEW - Put this here!)
+app.use('/api/auth', authRoutes);
+
+// 6. In-Memory File Upload Config (Zero Disk Persistence)
 const storage = multer.memoryStorage(); 
 const upload = multer({ 
   storage: storage,
   limits: { fileSize: 10 * 1024 * 1024 } // 10 MB limit
 });
 
-// File Conversion Endpoint
+// File Conversion Endpoint with Magic Byte Inspection
 app.post('/api/convert', upload.single('file'), (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: 'No file uploaded.' });
