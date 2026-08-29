@@ -1,6 +1,7 @@
 import express from 'express';
 import bcrypt from 'bcryptjs';
-import { authenticator } from 'otplib';
+import otplib from 'otplib';
+const { authenticator } = otplib;
 import crypto from 'crypto';
 import { UserDB } from './userDb.js';
 
