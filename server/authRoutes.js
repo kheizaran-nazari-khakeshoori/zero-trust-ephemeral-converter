@@ -1,8 +1,10 @@
 import express from 'express';
 import bcrypt from 'bcryptjs';
-import { authenticator } from 'otplib/authenticator';
+import * as otplib from 'otplib';
 import crypto from 'crypto';
 import { UserDB } from './userDb.js';
+
+const { authenticator } = otplib;
 
 const router = express.Router();
 
