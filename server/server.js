@@ -17,7 +17,7 @@ app.use(helmet());
 app.use(express.json());
 
 // 3. Cross-Origin Resource Sharing Protection
-app.use(cors({ origin: 'http://localhost:3000' }));
+app.use(cors());
 
 // 4. Rate Limiting (Prevents Brute Force Attacks)
 const limiter = rateLimit({
