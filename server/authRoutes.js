@@ -1,13 +1,12 @@
 import express from 'express';
 import bcrypt from 'bcryptjs';
-import * as otplib from 'otplib';
+import otplib from 'otplib';
 import crypto from 'crypto';
 import { UserDB } from './userDb.js';
 
 const { authenticator } = otplib;
 
 const router = express.Router();
-
 // -------------------------------------------------------------
 // STEP 1: Registration & Password Hashing
 // -------------------------------------------------------------
