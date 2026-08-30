@@ -80,6 +80,6 @@ app.post('/api/convert', upload.single('file'), (req, res) => {
   res.status(400).json({ error: 'Unsupported target format.' });
 });
 
-app.listen(PORT, () => {
-  console.log(`🔒 SecureConvert Server running on port ${PORT}`);
+app.listen(PORT, '127.0.0.1', () => {
+  console.log(`🔒 SecureConvert Server running on http://127.0.0.1:${PORT}`);
 });
