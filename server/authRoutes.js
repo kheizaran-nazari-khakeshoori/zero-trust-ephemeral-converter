@@ -40,6 +40,7 @@ router.post('/register', async (req, res) => {
       mfaSecret: mfaSecret
     });
   } catch (err) {
+    console.error('Registration Error Details:', err);
     res.status(500).json({ error: 'Server error during registration.' });
   }
 });
