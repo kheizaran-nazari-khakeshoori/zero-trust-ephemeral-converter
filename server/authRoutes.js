@@ -5,116 +5,102 @@ import crypto from 'crypto';
 import { UserDB } from './userDb.js';
 
 const router = express.Router();
-// -------------------------------------------------------------
-// STEP 1: Registration & Password Hashing
-// -------------------------------------------------------------
+
+// 1. REGISTER ROUTE
 router.post('/register', async (req, res) => {
-  const { email, password } = req.body;
+  try {
+    const { email, password } = req.body;
 
-  if (!email || !password || password.length < 8) {
-    return res.status(400).json({ error: 'Email and password (min 8 chars) required.' });
-  }
-
-  if (UserDB.findByEmail(email)) {
-    return res.status(400).json({ error: 'User already exists.' });
-  }
-
-  const salt = await bcrypt.genSalt(12);
-  const passwordHash = await bcrypt.hash(password, salt);
-
-  // Generate TOTP Secret for Step 2
-  const mfaSecret = authenticator.generateSecret();
-
-  const user = UserDB.createUser(email, passwordHash);
-  UserDB.updateUser(email, { mfaSecret, mfaEnabled: true });
-
-  const otpauthUrl = authenticator.keyuri(email, 'SecureConvert', mfaSecret);
-
-  res.json({
-    message: 'User registered successfully!',
-    step2Setup: {
-      totpSecret: mfaSecret,
-      totpUri: otpauthUrl,
-      instruction: 'Enter this secret key into Google Authenticator or Authy.'
+    if (!email || !password || password.length < 8) {
+      return res.status(400).json({ error: 'Email and password (min 8 chars) required.' });
     }
-  });
+
+    // Check if user already exists
+    const existingUser = UserDB.findByEmail(email);
+    if (existingUser) {
+      return res.status(400).json({ error: 'User already exists.' });
+    }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Generate TOTP Secret Key using speakeasy
+    const secret = speakeasy.generateSecret({ length: 20 });
+    const mfaSecret = secret.base32;
+
+    // Save user to memory/DB
+    UserDB.save({
+      email,
+      password: hashedPassword,
+      mfaSecret
+    });
+
+    res.json({
+      message: 'Registration successful!',
+      mfaSecret: mfaSecret
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error during registration.' });
+  }
 });
 
-// Step 1 Login: Password Verification
+// 2. LOGIN STEP 1 (Verify Password)
 router.post('/login-step1', async (req, res) => {
-  const { email, password } = req.body;
+  try {
+    const { email, password } = req.body;
 
-  const user = UserDB.findByEmail(email);
-  if (!user) {
-    return res.status(401).json({ error: 'Invalid credentials.' });
+    const user = UserDB.findByEmail(email);
+    if (!user) {
+      return res.status(401).json({ error: 'Invalid credentials.' });
+    }
+
+    const validPassword = await bcrypt.compare(password, user.password);
+    if (!validPassword) {
+      return res.status(401).json({ error: 'Invalid credentials.' });
+    }
+
+    // Create temporary session token for MFA step
+    const tempToken = crypto.randomBytes(32).toString('hex');
+    UserDB.saveTempToken(tempToken, user.email);
+
+    res.json({ tempToken });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error.' });
   }
-
-  const isMatch = await bcrypt.compare(password, user.passwordHash);
-  if (!isMatch) {
-    return res.status(401).json({ error: 'Invalid credentials.' });
-  }
-
-  res.json({
-    message: 'Step 1 Passed: Password verified.',
-    nextStep: 'STEP_2_TOTP_REQUIRED',
-    email: user.email
-  });
 });
 
-// -------------------------------------------------------------
-// STEP 2: TOTP (Time-based One-Time Password) Verification
-// -------------------------------------------------------------
-router.post('/login-step2', (req, res) => {
-  const { email, totpCode } = req.body;
+// 3. LOGIN STEP 2 (Verify TOTP Code)
+router.post('/login-step2', async (req, res) => {
+  try {
+    const { tempToken, totpCode } = req.body;
 
-  const user = UserDB.findByEmail(email);
-  if (!user || !user.mfaSecret) {
-    return res.status(401).json({ error: 'Session invalid or user not found.' });
+    const email = UserDB.getTempTokenUser(tempToken);
+    if (!email) {
+      return res.status(401).json({ error: 'Session expired or invalid token.' });
+    }
+
+    const user = UserDB.findByEmail(email);
+
+    // Verify TOTP code using speakeasy
+    const isValid = speakeasy.totp.verify({
+      secret: user.mfaSecret,
+      encoding: 'base32',
+      token: totpCode
+    });
+
+    if (!isValid) {
+      return res.status(401).json({ error: 'Invalid 2FA Code.' });
+    }
+
+    // Clear temp token and issue final session
+    UserDB.removeTempToken(tempToken);
+    const sessionToken = crypto.randomBytes(32).toString('hex');
+    UserDB.saveSession(sessionToken, user.email);
+
+    res.json({ sessionToken });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error during 2FA.' });
   }
-
-  // Verify TOTP token from Authenticator app
-  const isValid = authenticator.check(totpCode, user.mfaSecret);
-
-  if (!isValid) {
-    return res.status(401).json({ error: 'Invalid 6-digit TOTP code.' });
-  }
-
-  // Generate ephemeral 128-bit Security Token for Step 3
-  const step3Token = crypto.randomBytes(16).toString('hex');
-  UserDB.updateUser(email, { step3Token });
-
-  res.json({
-    message: 'Step 2 Passed: Authenticator code verified.',
-    nextStep: 'STEP_3_SECURITY_TOKEN_REQUIRED',
-    securityToken: step3Token, // Sent out-of-band / security key prompt
-    instruction: 'Submit your 32-character Security Key to finalize authentication.'
-  });
-});
-
-// -------------------------------------------------------------
-// STEP 3: Out-of-Band Security Token / Passkey Verification
-// -------------------------------------------------------------
-router.post('/login-step3', (req, res) => {
-  const { email, securityToken } = req.body;
-
-  const user = UserDB.findByEmail(email);
-  if (!user || !user.step3Token) {
-    return res.status(401).json({ error: 'Unauthorized sequence.' });
-  }
-
-  if (user.step3Token !== securityToken) {
-    return res.status(401).json({ error: 'Security token verification failed.' });
-  }
-
-  // Clear single-use Step 3 token
-  UserDB.updateUser(email, { step3Token: null });
-
-  // Issue fully authenticated session response
-  res.json({
-    message: '🎉 Step 3 Passed! 3-Factor Authentication Complete.',
-    sessionStatus: 'AUTHENTICATED_SECURE_CONVERT',
-    user: user.email
-  });
 });
 
 export default router;
