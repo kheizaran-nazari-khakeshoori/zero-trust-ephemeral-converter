@@ -8,7 +8,7 @@ let activeEmail = '';
 // 1. User Registration
 document.getElementById('regBtn')?.addEventListener('click', async () => {
   try {
-    const res = await fetch('http://localhost:5000/api/auth/register', {
+    const res = await fetch('http://127.0.0.1:5000/api/auth/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: authEmail.value, password: authPassword.value })
@@ -29,7 +29,7 @@ document.getElementById('regBtn')?.addEventListener('click', async () => {
 document.getElementById('login1Btn')?.addEventListener('click', async () => {
   activeEmail = authEmail.value;
   try {
-    const res = await fetch('http://localhost:5000/api/auth/login-step1', {
+    const res = await fetch('http://127.0.0.1:5000/api/auth/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: activeEmail, password: authPassword.value })
@@ -54,7 +54,7 @@ document.getElementById('login1Btn')?.addEventListener('click', async () => {
 document.getElementById('login2Btn')?.addEventListener('click', async () => {
   const code = document.getElementById('totpCode').value;
   try {
-    const res = await fetch('http://localhost:5000/api/auth/login-step2', {
+    const res = await fetch('http://127.0.0.1:5000/api/auth/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: activeEmail, totpCode: code })
@@ -80,7 +80,7 @@ document.getElementById('login2Btn')?.addEventListener('click', async () => {
 document.getElementById('login3Btn')?.addEventListener('click', async () => {
   const token = document.getElementById('secToken').value;
   try {
-    const res = await fetch('http://localhost:5000/api/auth/login-step3', {
+    const res = await fetch('http://127.0.0.1:5000/api/auth/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: activeEmail, securityToken: token })
@@ -145,7 +145,7 @@ uploadBtn.addEventListener('click', async () => {
   formData.append('targetFormat', formatSelect.value);
 
   try {
-    const response = await fetch('http://localhost:5000/api/convert', {
+    const response = await fetch('http://127.0.0.1:5000/api/auth/register', {
       method: 'POST',
       body: formData,
     });
