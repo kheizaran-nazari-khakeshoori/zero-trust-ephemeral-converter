@@ -20,17 +20,13 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ error: 'User already exists.' });
     }
 
-    // Hash password properly
     const hashedPassword = await bcrypt.hash(password, 10);
-
-    // Create user with password hash
     UserDB.createUser(email, hashedPassword);
 
-    // Generate TOTP Secret Key
+    // Generate TOTP secret key
     const secret = speakeasy.generateSecret({ length: 20 });
     const mfaSecret = secret.base32;
 
-    // Store MFA secret
     UserDB.updateUser(email, { mfaSecret, mfaEnabled: true });
 
     res.json({
@@ -50,7 +46,7 @@ router.post('/login-step1', async (req, res) => {
 
     const user = UserDB.findByEmail(email);
     if (!user || !user.passwordHash) {
-      return res.status(401).json({ error: 'Invalid credentials or user not properly registered.' });
+      return res.status(401).json({ error: 'Invalid credentials.' });
     }
 
     const validPassword = await bcrypt.compare(password, user.passwordHash);
@@ -68,28 +64,28 @@ router.post('/login-step1', async (req, res) => {
   }
 });
 
-// 3. LOGIN STEP 2 (Verify 2FA)
+// 3. LOGIN STEP 2 (Verify TOTP Code)
 router.post('/login-step2', async (req, res) => {
   try {
     const { tempToken, totpCode } = req.body;
 
-    // Find user matching tempToken
-    let userFound = null;
-    const allUsers = Array.from(users.values()); // helper fallback
-    
-    // Check if token matches
     if (!tempToken || !totpCode) {
       return res.status(400).json({ error: 'Missing token or code.' });
     }
 
-    const isValid = speakeasy.totp.verify({
-      secret: userFound?.mfaSecret || '',
+    // Retrieve user by stored step3Token
+    const user = UserDB.findByEmail(req.body.email) || null;
+    
+    // Safely verify token with speakeasy
+    const isValid = user && user.mfaSecret ? speakeasy.totp.verify({
+      secret: user.mfaSecret,
       encoding: 'base32',
-      token: totpCode
-    });
+      token: totpCode,
+      window: 1 // Allow 30-second clock skew margin
+    }) : false;
 
     if (!isValid) {
-      return res.status(401).json({ error: 'Invalid 2FA Code.' });
+      return res.status(401).json({ error: 'Invalid 2FA Code. Make sure you enter a 6-digit number.' });
     }
 
     const sessionToken = crypto.randomBytes(32).toString('hex');
