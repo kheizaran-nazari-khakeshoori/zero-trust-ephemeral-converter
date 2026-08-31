@@ -1,181 +1,133 @@
-// --- Elements: Authentication ---
+// DOM Element References
+const regBtn = document.getElementById('regBtn');
+const login1Btn = document.getElementById('login1Btn');
 const authEmail = document.getElementById('authEmail');
 const authPassword = document.getElementById('authPassword');
 const authStatus = document.getElementById('authStatus');
+const mfaDisplay = document.getElementById('mfaDisplay');
+const mfaSecretKey = document.getElementById('mfaSecretKey');
 
-let activeEmail = '';
+const step1Box = document.getElementById('step1Box');
+const step2Box = document.getElementById('step2Box');
+const login2Btn = document.getElementById('login2Btn');
+const totpCode = document.getElementById('totpCode');
 
-// 1. User Registration
-document.getElementById('regBtn')?.addEventListener('click', async () => {
-  try {
-    const res = await fetch('http://127.0.0.1:5000/api/auth/register', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: authEmail.value, password: authPassword.value })
-    });
-    const data = await res.json();
-    authStatus.style.color = res.ok ? '#4ade80' : '#f87171';
-    authStatus.innerText = data.message || data.error;
-    if (data.step2Setup) {
-      alert(`Save your TOTP Secret Key into Google Authenticator or Authy:\n\n${data.step2Setup.totpSecret}`);
-    }
-  } catch (err) {
+let tempAuthToken = '';
+
+// 1. REGISTER ACTION
+regBtn.addEventListener('click', async () => {
+  const email = authEmail.value.trim();
+  const password = authPassword.value.trim();
+
+  if (!email || !password) {
+    authStatus.innerText = 'Please enter both email and password to register.';
     authStatus.style.color = '#f87171';
-    authStatus.innerText = 'Server connection error.';
+    return;
   }
-});
 
-// 2. Step 1 Login: Password
-document.getElementById('login1Btn')?.addEventListener('click', async () => {
-  activeEmail = authEmail.value;
   try {
     const res = await fetch('http://127.0.0.1:5000/api/auth/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: activeEmail, password: authPassword.value })
+      body: JSON.stringify({ email, password })
     });
+
     const data = await res.json();
+
     if (res.ok) {
-      document.getElementById('step1Box').style.display = 'none';
-      document.getElementById('step2Box').style.display = 'block';
+      // Show 2FA Secret Key
+      mfaSecretKey.innerText = data.mfaSecret;
+      mfaDisplay.style.display = 'block';
+
+      // Hide the Register button so only Login remains
+      regBtn.style.display = 'none';
+
+      authStatus.innerText = 'Registration successful! Save your 2FA Key, then click Step 1: Password Login.';
       authStatus.style.color = '#4ade80';
-      authStatus.innerText = data.message;
     } else {
+      authStatus.innerText = data.error || 'Registration failed.';
       authStatus.style.color = '#f87171';
-      authStatus.innerText = data.error;
     }
   } catch (err) {
-    authStatus.style.color = '#f87171';
+    console.error('Registration fetch error:', err);
     authStatus.innerText = 'Server connection error.';
+    authStatus.style.color = '#f87171';
   }
 });
 
-// 3. Step 2 Login: TOTP Verification
-document.getElementById('login2Btn')?.addEventListener('click', async () => {
-  const code = document.getElementById('totpCode').value;
+// 2. STEP 1 LOGIN ACTION
+login1Btn.addEventListener('click', async () => {
+  const email = authEmail.value.trim();
+  const password = authPassword.value.trim();
+
+  if (!email || !password) {
+    authStatus.innerText = 'Please enter your email and password.';
+    authStatus.style.color = '#f87171';
+    return;
+  }
+
   try {
-    const res = await fetch('http://127.0.0.1:5000/api/auth/register', {
+    const res = await fetch('http://127.0.0.1:5000/api/auth/login-step1', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: activeEmail, totpCode: code })
+      body: JSON.stringify({ email, password })
     });
+
     const data = await res.json();
+
     if (res.ok) {
-      document.getElementById('step2Box').style.display = 'none';
-      document.getElementById('step3Box').style.display = 'block';
-      document.getElementById('secToken').value = data.securityToken;
+      tempAuthToken = data.tempToken;
+
+      // Hide Step 1 Box and MFA display, then show Step 2 Box (TOTP)
+      step1Box.style.display = 'none';
+      mfaDisplay.style.display = 'none';
+      step2Box.style.display = 'block';
+
+      authStatus.innerText = 'Password verified! Enter your 6-digit TOTP code.';
       authStatus.style.color = '#4ade80';
-      authStatus.innerText = data.message;
     } else {
+      authStatus.innerText = data.error || 'Login failed.';
       authStatus.style.color = '#f87171';
-      authStatus.innerText = data.error;
     }
   } catch (err) {
-    authStatus.style.color = '#f87171';
+    console.error('Step 1 login error:', err);
     authStatus.innerText = 'Server connection error.';
+    authStatus.style.color = '#f87171';
   }
 });
 
-// 4. Step 3 Login: Security Key Verification
-document.getElementById('login3Btn')?.addEventListener('click', async () => {
-  const token = document.getElementById('secToken').value;
+// 3. STEP 2 LOGIN ACTION (TOTP Verification)
+login2Btn.addEventListener('click', async () => {
+  const code = totpCode.value.trim();
+
+  if (!code || code.length !== 6) {
+    authStatus.innerText = 'Please enter a valid 6-digit TOTP code.';
+    authStatus.style.color = '#f87171';
+    return;
+  }
+
   try {
-    const res = await fetch('http://127.0.0.1:5000/api/auth/register', {
+    const res = await fetch('http://127.0.0.1:5000/api/auth/login-step2', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: activeEmail, securityToken: token })
+      body: JSON.stringify({ tempToken: tempAuthToken, totpCode: code })
     });
+
     const data = await res.json();
-    authStatus.style.color = res.ok ? '#4ade80' : '#f87171';
-    authStatus.innerText = data.message || data.error;
-  } catch (err) {
-    authStatus.style.color = '#f87171';
-    authStatus.innerText = 'Server connection error.';
-  }
-});
 
+    if (res.ok) {
+      authStatus.innerText = 'Authentication Complete! You are logged in.';
+      authStatus.style.color = '#4ade80';
 
-// --- Elements: File Converter ---
-const dropZone = document.getElementById('dropZone');
-const fileInput = document.getElementById('fileInput');
-const fileLabel = document.getElementById('fileLabel');
-const uploadBtn = document.getElementById('uploadBtn');
-const statusDiv = document.getElementById('status');
-const formatSelect = document.getElementById('formatSelect');
-
-let selectedFile = null;
-
-dropZone.addEventListener('click', () => fileInput.click());
-
-fileInput.addEventListener('change', (e) => {
-  if (e.target.files.length > 0) {
-    selectedFile = e.target.files[0];
-    fileLabel.innerText = `Selected: ${selectedFile.name}`;
-    uploadBtn.disabled = false;
-  }
-});
-
-dropZone.addEventListener('dragover', (e) => {
-  e.preventDefault();
-  dropZone.style.background = 'rgba(59, 130, 246, 0.2)';
-});
-
-dropZone.addEventListener('dragleave', () => {
-  dropZone.style.background = 'transparent';
-});
-
-dropZone.addEventListener('drop', (e) => {
-  e.preventDefault();
-  dropZone.style.background = 'transparent';
-  if (e.dataTransfer.files.length > 0) {
-    selectedFile = e.dataTransfer.files[0];
-    fileLabel.innerText = `Selected: ${selectedFile.name}`;
-    uploadBtn.disabled = false;
-  }
-});
-
-uploadBtn.addEventListener('click', async () => {
-  if (!selectedFile) return;
-
-  statusDiv.style.color = '#93c5fd';
-  statusDiv.innerText = 'Converting in memory...';
-
-  const formData = new FormData();
-  formData.append('file', selectedFile);
-  formData.append('targetFormat', formatSelect.value);
-
-  try {
-    const response = await fetch('http://127.0.0.1:5000/api/auth/register', {
-      method: 'POST',
-      body: formData,
-    });
-
-    if (response.ok) {
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      
-      const contentDisposition = response.headers.get('content-disposition');
-      let filename = 'converted-file';
-      if (contentDisposition && contentDisposition.includes('filename=')) {
-        filename = contentDisposition.split('filename=')[1].replace(/"/g, '');
-      }
-      
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-
-      statusDiv.style.color = '#4ade80';
-      statusDiv.innerText = 'File converted and downloaded successfully!';
+      // Unlock file upload converter card
+      document.getElementById('uploadBtn').disabled = false;
     } else {
-      const result = await response.json();
-      statusDiv.style.color = '#f87171';
-      statusDiv.innerText = `Error: ${result.error}`;
+      authStatus.innerText = data.error || 'Invalid TOTP Code.';
+      authStatus.style.color = '#f87171';
     }
   } catch (err) {
-    statusDiv.style.color = '#f87171';
-    statusDiv.innerText = 'Server connection failed.';
+    console.error('Step 2 login error:', err);
+    authStatus.innerText = 'Server connection error.';
+    authStatus.style.color = '#f87171';
   }
 });
