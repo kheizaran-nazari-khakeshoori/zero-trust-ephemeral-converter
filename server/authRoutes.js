@@ -6,27 +6,31 @@ import { UserDB } from './userDb.js';
 
 const router = express.Router();
 
-// 1. REGISTER ROUTE (Email Only)
+// 1. REGISTER ROUTE
 router.post('/register', async (req, res) => {
   try {
-    const { email } = req.body;
+    const { email, password } = req.body;
 
-    if (!email) {
-      return res.status(400).json({ error: 'Email is required.' });
+    if (!email || !password || password.length < 8) {
+      return res.status(400).json({ error: 'Email and password (min 8 chars) required.' });
     }
 
-    // Check if user exists
     const existingUser = UserDB.findByEmail(email);
     if (existingUser) {
-      return res.status(400).json({ error: 'User already registered.' });
+      return res.status(400).json({ error: 'User already exists.' });
     }
 
-    // Generate TOTP Secret Key using speakeasy
+    // Hash password properly
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Create user with password hash
+    UserDB.createUser(email, hashedPassword);
+
+    // Generate TOTP Secret Key
     const secret = speakeasy.generateSecret({ length: 20 });
     const mfaSecret = secret.base32;
 
-    // Create base user record without password yet
-    UserDB.createUser(email, null);
+    // Store MFA secret
     UserDB.updateUser(email, { mfaSecret, mfaEnabled: true });
 
     res.json({
@@ -45,8 +49,8 @@ router.post('/login-step1', async (req, res) => {
     const { email, password } = req.body;
 
     const user = UserDB.findByEmail(email);
-    if (!user) {
-      return res.status(401).json({ error: 'Invalid credentials.' });
+    if (!user || !user.passwordHash) {
+      return res.status(401).json({ error: 'Invalid credentials or user not properly registered.' });
     }
 
     const validPassword = await bcrypt.compare(password, user.passwordHash);
@@ -60,7 +64,7 @@ router.post('/login-step1', async (req, res) => {
     res.json({ tempToken: step3Token });
   } catch (err) {
     console.error('Login Step 1 Error:', err);
-    res.status(500).json({ error: 'Server error.' });
+    res.status(500).json({ error: 'Server error during login.' });
   }
 });
 
