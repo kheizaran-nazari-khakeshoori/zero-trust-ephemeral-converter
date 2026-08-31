@@ -23,7 +23,6 @@ router.post('/register', async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
     UserDB.createUser(email, hashedPassword);
 
-    // Generate TOTP secret key
     const secret = speakeasy.generateSecret({ length: 20 });
     const mfaSecret = secret.base32;
 
@@ -64,35 +63,37 @@ router.post('/login-step1', async (req, res) => {
   }
 });
 
-// 3. LOGIN STEP 2 (Verify TOTP Code)
+// 3. LOGIN STEP 2 (Verify 2FA)
 router.post('/login-step2', async (req, res) => {
   try {
-    const { tempToken, totpCode } = req.body;
+    const { email, tempToken, totpCode } = req.body;
 
-    if (!tempToken || !totpCode) {
-      return res.status(400).json({ error: 'Missing token or code.' });
+    if (!email || !totpCode) {
+      return res.status(400).json({ error: 'Missing email or 2FA code.' });
     }
 
-    // Retrieve user by stored step3Token
-    const user = UserDB.findByEmail(req.body.email) || null;
-    
-    // Safely verify token with speakeasy
-    const isValid = user && user.mfaSecret ? speakeasy.totp.verify({
+    const user = UserDB.findByEmail(email);
+
+    if (!user || !user.mfaSecret) {
+      return res.status(400).json({ error: 'User 2FA not initialized.' });
+    }
+
+    const isValid = speakeasy.totp.verify({
       secret: user.mfaSecret,
       encoding: 'base32',
       token: totpCode,
-      window: 1 // Allow 30-second clock skew margin
-    }) : false;
+      window: 1
+    });
 
     if (!isValid) {
-      return res.status(401).json({ error: 'Invalid 2FA Code. Make sure you enter a 6-digit number.' });
+      return res.status(401).json({ error: 'Invalid 2FA Code. Check your TOTP generator app.' });
     }
 
     const sessionToken = crypto.randomBytes(32).toString('hex');
     res.json({ sessionToken });
   } catch (err) {
     console.error('Login Step 2 Error:', err);
-    res.status(500).json({ error: 'Server error during 2FA.' });
+    res.status(500).json({ error: 'Server error during 2FA verification.' });
   }
 });
 
