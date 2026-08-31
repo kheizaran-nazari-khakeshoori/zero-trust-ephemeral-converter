@@ -6,34 +6,28 @@ import { UserDB } from './userDb.js';
 
 const router = express.Router();
 
-// 1. REGISTER ROUTE
+// 1. REGISTER ROUTE (Email Only)
 router.post('/register', async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email } = req.body;
 
-    if (!email || !password || password.length < 8) {
-      return res.status(400).json({ error: 'Email and password (min 8 chars) required.' });
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required.' });
     }
 
+    // Check if user exists
     const existingUser = UserDB.findByEmail(email);
     if (existingUser) {
-      return res.status(400).json({ error: 'User already exists.' });
+      return res.status(400).json({ error: 'User already registered.' });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    // Create user in DB using createUser
-    const newUser = UserDB.createUser(email, hashedPassword);
-
-    // Generate TOTP Secret Key
+    // Generate TOTP Secret Key using speakeasy
     const secret = speakeasy.generateSecret({ length: 20 });
     const mfaSecret = secret.base32;
 
-    // Save MFA secret using updateUser
-    UserDB.updateUser(email, { 
-      mfaSecret, 
-      mfaEnabled: true 
-    });
+    // Create base user record without password yet
+    UserDB.createUser(email, null);
+    UserDB.updateUser(email, { mfaSecret, mfaEnabled: true });
 
     res.json({
       message: 'Registration successful!',
