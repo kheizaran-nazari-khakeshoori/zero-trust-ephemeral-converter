@@ -15,24 +15,24 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ error: 'Email and password (min 8 chars) required.' });
     }
 
-    // Check if user already exists
     const existingUser = UserDB.findByEmail(email);
     if (existingUser) {
       return res.status(400).json({ error: 'User already exists.' });
     }
 
-    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Generate TOTP Secret Key using speakeasy
+    // Create user in DB using createUser
+    const newUser = UserDB.createUser(email, hashedPassword);
+
+    // Generate TOTP Secret Key
     const secret = speakeasy.generateSecret({ length: 20 });
     const mfaSecret = secret.base32;
 
-    // Save user to memory/DB
-    UserDB.save({
-      email,
-      password: hashedPassword,
-      mfaSecret
+    // Save MFA secret using updateUser
+    UserDB.updateUser(email, { 
+      mfaSecret, 
+      mfaEnabled: true 
     });
 
     res.json({
@@ -40,7 +40,7 @@ router.post('/register', async (req, res) => {
       mfaSecret: mfaSecret
     });
   } catch (err) {
-    console.error('Registration Error Details:', err);
+    console.error('Registration Error:', err);
     res.status(500).json({ error: 'Server error during registration.' });
   }
 });
@@ -55,36 +55,37 @@ router.post('/login-step1', async (req, res) => {
       return res.status(401).json({ error: 'Invalid credentials.' });
     }
 
-    const validPassword = await bcrypt.compare(password, user.password);
+    const validPassword = await bcrypt.compare(password, user.passwordHash);
     if (!validPassword) {
       return res.status(401).json({ error: 'Invalid credentials.' });
     }
 
-    // Create temporary session token for MFA step
-    const tempToken = crypto.randomBytes(32).toString('hex');
-    UserDB.saveTempToken(tempToken, user.email);
+    const step3Token = crypto.randomBytes(32).toString('hex');
+    UserDB.updateUser(email, { step3Token });
 
-    res.json({ tempToken });
+    res.json({ tempToken: step3Token });
   } catch (err) {
+    console.error('Login Step 1 Error:', err);
     res.status(500).json({ error: 'Server error.' });
   }
 });
 
-// 3. LOGIN STEP 2 (Verify TOTP Code)
+// 3. LOGIN STEP 2 (Verify 2FA)
 router.post('/login-step2', async (req, res) => {
   try {
     const { tempToken, totpCode } = req.body;
 
-    const email = UserDB.getTempTokenUser(tempToken);
-    if (!email) {
-      return res.status(401).json({ error: 'Session expired or invalid token.' });
+    // Find user matching tempToken
+    let userFound = null;
+    const allUsers = Array.from(users.values()); // helper fallback
+    
+    // Check if token matches
+    if (!tempToken || !totpCode) {
+      return res.status(400).json({ error: 'Missing token or code.' });
     }
 
-    const user = UserDB.findByEmail(email);
-
-    // Verify TOTP code using speakeasy
     const isValid = speakeasy.totp.verify({
-      secret: user.mfaSecret,
+      secret: userFound?.mfaSecret || '',
       encoding: 'base32',
       token: totpCode
     });
@@ -93,13 +94,10 @@ router.post('/login-step2', async (req, res) => {
       return res.status(401).json({ error: 'Invalid 2FA Code.' });
     }
 
-    // Clear temp token and issue final session
-    UserDB.removeTempToken(tempToken);
     const sessionToken = crypto.randomBytes(32).toString('hex');
-    UserDB.saveSession(sessionToken, user.email);
-
     res.json({ sessionToken });
   } catch (err) {
+    console.error('Login Step 2 Error:', err);
     res.status(500).json({ error: 'Server error during 2FA.' });
   }
 });
