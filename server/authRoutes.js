@@ -15,18 +15,18 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ error: 'Email and password (min 8 chars) required.' });
     }
 
-    const existingUser = UserDB.findByEmail(email);
+    const existingUser = await UserDB.findByEmail(email);
     if (existingUser) {
       return res.status(400).json({ error: 'User already exists.' });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    UserDB.createUser(email, hashedPassword);
+    await UserDB.createUser(email, hashedPassword);
 
     const secret = speakeasy.generateSecret({ length: 20 });
     const mfaSecret = secret.base32;
 
-    UserDB.updateUser(email, { mfaSecret, mfaEnabled: true });
+    await UserDB.updateUser(email, { mfaSecret, mfaEnabled: 1 });
 
     res.json({
       message: 'Registration successful!',
@@ -38,12 +38,12 @@ router.post('/register', async (req, res) => {
   }
 });
 
-// 2. LOGIN STEP 1 (Verify Password)
+// 2. LOGIN STEP 1 (Password Verification)
 router.post('/login-step1', async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    const user = UserDB.findByEmail(email);
+    const user = await UserDB.findByEmail(email);
     if (!user || !user.passwordHash) {
       return res.status(401).json({ error: 'Invalid credentials.' });
     }
@@ -54,7 +54,7 @@ router.post('/login-step1', async (req, res) => {
     }
 
     const step3Token = crypto.randomBytes(32).toString('hex');
-    UserDB.updateUser(email, { step3Token });
+    await UserDB.updateUser(email, { step3Token });
 
     res.json({ tempToken: step3Token });
   } catch (err) {
@@ -63,7 +63,7 @@ router.post('/login-step1', async (req, res) => {
   }
 });
 
-// 3. LOGIN STEP 2 (Verify 2FA)
+// 3. LOGIN STEP 2 (2FA Verification)
 router.post('/login-step2', async (req, res) => {
   try {
     const { email, tempToken, totpCode } = req.body;
@@ -72,7 +72,7 @@ router.post('/login-step2', async (req, res) => {
       return res.status(400).json({ error: 'Missing email or 2FA code.' });
     }
 
-    const user = UserDB.findByEmail(email);
+    const user = await UserDB.findByEmail(email);
 
     if (!user || !user.mfaSecret) {
       return res.status(400).json({ error: 'User 2FA not initialized.' });
@@ -86,14 +86,14 @@ router.post('/login-step2', async (req, res) => {
     });
 
     if (!isValid) {
-      return res.status(401).json({ error: 'Invalid 2FA Code. Check your TOTP generator app.' });
+      return res.status(401).json({ error: 'Invalid 2FA Code.' });
     }
 
     const sessionToken = crypto.randomBytes(32).toString('hex');
     res.json({ sessionToken });
   } catch (err) {
     console.error('Login Step 2 Error:', err);
-    res.status(500).json({ error: 'Server error during 2FA verification.' });
+    res.status(500).json({ error: 'Server error during 2FA.' });
   }
 });
 
