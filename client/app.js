@@ -1,4 +1,3 @@
-// DOM Element References
 const regBtn = document.getElementById('regBtn');
 const login1Btn = document.getElementById('login1Btn');
 const authEmail = document.getElementById('authEmail');
@@ -35,11 +34,8 @@ regBtn.addEventListener('click', async () => {
     const data = await res.json();
 
     if (res.ok) {
-      // Show 2FA Secret Key
       mfaSecretKey.innerText = data.mfaSecret;
       mfaDisplay.style.display = 'block';
-
-      // Hide the Register button so only Login remains
       regBtn.style.display = 'none';
 
       authStatus.innerText = 'Registration successful! Save your 2FA Key, then click Step 1: Password Login.';
@@ -78,7 +74,6 @@ login1Btn.addEventListener('click', async () => {
     if (res.ok) {
       tempAuthToken = data.tempToken;
 
-      // Hide Step 1 Box and MFA display, then show Step 2 Box (TOTP)
       step1Box.style.display = 'none';
       mfaDisplay.style.display = 'none';
       step2Box.style.display = 'block';
@@ -99,6 +94,7 @@ login1Btn.addEventListener('click', async () => {
 // 3. STEP 2 LOGIN ACTION (TOTP Verification)
 login2Btn.addEventListener('click', async () => {
   const code = totpCode.value.trim();
+  const email = authEmail.value.trim();
 
   if (!code || code.length !== 6) {
     authStatus.innerText = 'Please enter a valid 6-digit TOTP code.';
@@ -110,7 +106,11 @@ login2Btn.addEventListener('click', async () => {
     const res = await fetch('http://127.0.0.1:5000/api/auth/login-step2', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tempToken: tempAuthToken, totpCode: code })
+      body: JSON.stringify({ 
+        email: email, 
+        tempToken: tempAuthToken, 
+        totpCode: code 
+      })
     });
 
     const data = await res.json();
@@ -118,8 +118,6 @@ login2Btn.addEventListener('click', async () => {
     if (res.ok) {
       authStatus.innerText = 'Authentication Complete! You are logged in.';
       authStatus.style.color = '#4ade80';
-
-      // Unlock file upload converter card
       document.getElementById('uploadBtn').disabled = false;
     } else {
       authStatus.innerText = data.error || 'Invalid TOTP Code.';
