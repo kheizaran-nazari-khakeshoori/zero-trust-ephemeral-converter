@@ -25,7 +25,9 @@ let tempAuthToken = '';
 let selectedFile = null;
 
 // 1. REGISTER ACTION
-regBtn.addEventListener('click', async () => {
+regBtn.addEventListener('click', async (e) => {
+  e.preventDefault();
+
   const email = authEmail.value.trim();
   const password = authPassword.value.trim();
 
@@ -49,7 +51,7 @@ regBtn.addEventListener('click', async () => {
       mfaDisplay.style.display = 'block';
       regBtn.style.display = 'none';
 
-      authStatus.innerText = 'Registration successful! Save your 2FA Key, then click Step 1: Password Login.';
+      authStatus.innerText = 'Registration successful! Copy your 2FA Key, then click Step 1: Password Login.';
       authStatus.style.color = '#4ade80';
     } else {
       authStatus.innerText = data.error || 'Registration failed.';
@@ -63,7 +65,9 @@ regBtn.addEventListener('click', async () => {
 });
 
 // 2. STEP 1 LOGIN
-login1Btn.addEventListener('click', async () => {
+login1Btn.addEventListener('click', async (e) => {
+  e.preventDefault();
+
   const email = authEmail.value.trim();
   const password = authPassword.value.trim();
 
@@ -103,7 +107,9 @@ login1Btn.addEventListener('click', async () => {
 });
 
 // 3. STEP 2 LOGIN & REDIRECT TO DASHBOARD
-login2Btn.addEventListener('click', async () => {
+login2Btn.addEventListener('click', async (e) => {
+  e.preventDefault();
+
   const code = totpCode.value.trim();
   const email = authEmail.value.trim();
 
@@ -123,7 +129,6 @@ login2Btn.addEventListener('click', async () => {
     const data = await res.json();
 
     if (res.ok) {
-      // Hide Auth Card and display Converter Dashboard
       authCard.style.display = 'none';
       dashboardCard.style.display = 'block';
     } else {
@@ -166,7 +171,9 @@ fileInput.addEventListener('change', (e) => {
   }
 });
 
-uploadBtn.addEventListener('click', () => {
+uploadBtn.addEventListener('click', (e) => {
+  e.preventDefault();
+
   if (!selectedFile) {
     statusMsg.innerText = 'Please select or drop a file first.';
     statusMsg.style.color = '#f87171';
