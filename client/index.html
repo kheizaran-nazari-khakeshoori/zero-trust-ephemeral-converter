@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SecureConvert | Zero-Knowledge File Conversion</title>
+  <title>SecureConvert | Multi-Factor Secure File Conversion</title>
   <style>
     body {
       font-family: system-ui, -apple-system, sans-serif;
@@ -36,8 +36,8 @@
       cursor: pointer;
       transition: background 0.2s ease;
     }
-    .drop-zone:hover {
-      background: rgba(59, 130, 246, 0.1);
+    .drop-zone:hover, .drop-zone.dragover {
+      background: rgba(59, 130, 246, 0.2);
     }
     input[type="email"], input[type="password"], input[type="text"], select {
       width: 100%;
@@ -74,11 +74,11 @@
 </head>
 <body>
 
-  <!-- Card 1: 3-Step Authentication System -->
+  <!-- Card 1: 2-Step Authentication -->
   <div class="card" id="authCard">
-    <h2 style="margin-top: 0;">🔐 3-Step Authentication</h2>
+    <h2 style="margin-top: 0;">🔐 2-Step Authentication</h2>
     
-    <!-- Step 1 Form -->
+    <!-- Registration/Login Step 1 Form -->
     <div id="step1Box">
       <input type="email" id="authEmail" placeholder="Email Address">
       <input type="password" id="authPassword" placeholder="Password (min 8 chars)">
@@ -88,18 +88,11 @@
       </div>
     </div>
 
-    <!-- Step 2 Form -->
+    <!-- Step 2 Form (TOTP 2FA) -->
     <div id="step2Box" style="display: none;">
       <p style="font-size: 0.85rem; color: #94a3b8;">Enter 6-digit TOTP code from Authenticator App:</p>
       <input type="text" id="totpCode" placeholder="123456" maxlength="6">
       <button id="login2Btn">Step 2: Verify TOTP Code</button>
-    </div>
-
-    <!-- Step 3 Form -->
-    <div id="step3Box" style="display: none;">
-      <p style="font-size: 0.85rem; color: #94a3b8;">Verify Security Token / Passkey:</p>
-      <input type="text" id="secToken" placeholder="Paste Security Key">
-      <button id="login3Btn">Step 3: Verify Security Key</button>
     </div>
 
     <!-- 2FA Secret Key Display Container -->
@@ -111,9 +104,9 @@
     <div class="status-msg" id="authStatus"></div>
   </div>
 
-  <!-- Card 2: Zero-Knowledge File Converter -->
-  <div class="card">
-    <h2 style="margin-top: 0;">🔒 SecureConvert</h2>
+  <!-- Card 2: Converter Dashboard (Hidden until logged in) -->
+  <div class="card" id="dashboardCard" style="display: none;">
+    <h2 style="margin-top: 0;">🔒 User Dashboard</h2>
     <p style="font-size: 0.85rem; color: #94a3b8;">Ephemeral, In-Memory File Processing</p>
 
     <div class="drop-zone" id="dropZone">
@@ -127,7 +120,7 @@
       <option value="csv">Convert JSON to CSV (.csv)</option>
     </select>
 
-    <button id="uploadBtn" disabled>Upload & Convert</button>
+    <button id="uploadBtn">Upload & Convert</button>
 
     <div class="status-msg" id="status"></div>
   </div>
