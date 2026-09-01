@@ -24,6 +24,12 @@ const statusMsg = document.getElementById('status');
 let tempAuthToken = '';
 let selectedFile = null;
 
+// Helper function to reset status messages
+function setStatus(message, isSuccess = false) {
+  authStatus.innerText = message;
+  authStatus.style.color = isSuccess ? '#4ade80' : '#f87171';
+}
+
 // 1. REGISTER ACTION
 regBtn.addEventListener('click', async (e) => {
   e.preventDefault();
@@ -32,8 +38,7 @@ regBtn.addEventListener('click', async (e) => {
   const password = authPassword.value.trim();
 
   if (!email || !password) {
-    authStatus.innerText = 'Please enter both email and password to register.';
-    authStatus.style.color = '#f87171';
+    setStatus('Please fill in both email and password.');
     return;
   }
 
@@ -49,22 +54,17 @@ regBtn.addEventListener('click', async (e) => {
     if (res.ok) {
       mfaSecretKey.innerText = data.mfaSecret;
       mfaDisplay.style.display = 'block';
-      regBtn.style.display = 'none';
-
-      authStatus.innerText = 'Registration successful! Copy your 2FA Key, then click Step 1: Password Login.';
-      authStatus.style.color = '#4ade80';
+      setStatus('Registered! Save your key, then click Step 1: Password Login.', true);
     } else {
-      authStatus.innerText = data.error || 'Registration failed.';
-      authStatus.style.color = '#f87171';
+      setStatus(data.error || 'Registration failed.');
     }
   } catch (err) {
     console.error('Registration error:', err);
-    authStatus.innerText = 'Server connection error.';
-    authStatus.style.color = '#f87171';
+    setStatus('Cannot connect to backend server.');
   }
 });
 
-// 2. STEP 1 LOGIN
+// 2. STEP 1 LOGIN (Password Check)
 login1Btn.addEventListener('click', async (e) => {
   e.preventDefault();
 
@@ -72,8 +72,7 @@ login1Btn.addEventListener('click', async (e) => {
   const password = authPassword.value.trim();
 
   if (!email || !password) {
-    authStatus.innerText = 'Please enter your email and password.';
-    authStatus.style.color = '#f87171';
+    setStatus('Please enter your email and password.');
     return;
   }
 
@@ -88,25 +87,20 @@ login1Btn.addEventListener('click', async (e) => {
 
     if (res.ok) {
       tempAuthToken = data.tempToken;
-
       step1Box.style.display = 'none';
       mfaDisplay.style.display = 'none';
       step2Box.style.display = 'block';
-
-      authStatus.innerText = 'Password verified! Enter your 6-digit TOTP code.';
-      authStatus.style.color = '#4ade80';
+      setStatus('Password accepted! Enter your 6-digit TOTP code.', true);
     } else {
-      authStatus.innerText = data.error || 'Login failed.';
-      authStatus.style.color = '#f87171';
+      setStatus(data.error || 'Login failed.');
     }
   } catch (err) {
     console.error('Step 1 error:', err);
-    authStatus.innerText = 'Server connection error.';
-    authStatus.style.color = '#f87171';
+    setStatus('Cannot connect to backend server.');
   }
 });
 
-// 3. STEP 2 LOGIN & REDIRECT TO DASHBOARD
+// 3. STEP 2 LOGIN (TOTP Check)
 login2Btn.addEventListener('click', async (e) => {
   e.preventDefault();
 
@@ -114,8 +108,7 @@ login2Btn.addEventListener('click', async (e) => {
   const email = authEmail.value.trim();
 
   if (!code || code.length !== 6) {
-    authStatus.innerText = 'Please enter a valid 6-digit TOTP code.';
-    authStatus.style.color = '#f87171';
+    setStatus('Please enter a 6-digit TOTP code.');
     return;
   }
 
@@ -132,17 +125,15 @@ login2Btn.addEventListener('click', async (e) => {
       authCard.style.display = 'none';
       dashboardCard.style.display = 'block';
     } else {
-      authStatus.innerText = data.error || 'Invalid TOTP Code.';
-      authStatus.style.color = '#f87171';
+      setStatus(data.error || 'Invalid 2FA code.');
     }
   } catch (err) {
     console.error('Step 2 error:', err);
-    authStatus.innerText = 'Server connection error.';
-    authStatus.style.color = '#f87171';
+    setStatus('Cannot connect to backend server.');
   }
 });
 
-// 4. DRAG AND DROP FILE HANDLERS
+// 4. FILE UPLOAD & DRAG/DROP
 dropZone.addEventListener('click', () => fileInput.click());
 
 dropZone.addEventListener('dragover', (e) => {
@@ -160,25 +151,24 @@ dropZone.addEventListener('drop', (e) => {
 
   if (e.dataTransfer.files.length > 0) {
     selectedFile = e.dataTransfer.files[0];
-    fileLabel.innerText = `Selected File: ${selectedFile.name}`;
+    fileLabel.innerText = `Selected: ${selectedFile.name}`;
   }
 });
 
 fileInput.addEventListener('change', (e) => {
   if (e.target.files.length > 0) {
     selectedFile = e.target.files[0];
-    fileLabel.innerText = `Selected File: ${selectedFile.name}`;
+    fileLabel.innerText = `Selected: ${selectedFile.name}`;
   }
 });
 
 uploadBtn.addEventListener('click', (e) => {
   e.preventDefault();
-
   if (!selectedFile) {
-    statusMsg.innerText = 'Please select or drop a file first.';
+    statusMsg.innerText = 'Please select a file first.';
     statusMsg.style.color = '#f87171';
     return;
   }
-  statusMsg.innerText = `File "${selectedFile.name}" ready for conversion.`;
+  statusMsg.innerText = `File "${selectedFile.name}" ready to convert.`;
   statusMsg.style.color = '#4ade80';
 });
