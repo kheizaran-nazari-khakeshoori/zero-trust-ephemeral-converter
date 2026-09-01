@@ -80,19 +80,19 @@
     
     <!-- Registration/Login Step 1 Form -->
     <div id="step1Box">
-      <input type="email" id="authEmail" placeholder="Email Address">
-      <input type="password" id="authPassword" placeholder="Password (min 8 chars)">
+      <input type="email" id="authEmail" placeholder="Email Address" autocomplete="off">
+      <input type="password" id="authPassword" placeholder="Password (min 8 chars)" autocomplete="off">
       <div style="display: flex; gap: 0.5rem;">
-        <button id="regBtn" style="background: #475569;">Register</button>
-        <button id="login1Btn">Step 1: Password Login</button>
+        <button type="button" id="regBtn" style="background: #475569;">Register</button>
+        <button type="button" id="login1Btn">Step 1: Password Login</button>
       </div>
     </div>
 
     <!-- Step 2 Form (TOTP 2FA) -->
     <div id="step2Box" style="display: none;">
       <p style="font-size: 0.85rem; color: #94a3b8;">Enter 6-digit TOTP code from Authenticator App:</p>
-      <input type="text" id="totpCode" placeholder="123456" maxlength="6">
-      <button id="login2Btn">Step 2: Verify TOTP Code</button>
+      <input type="text" id="totpCode" placeholder="123456" maxlength="6" autocomplete="off">
+      <button type="button" id="login2Btn">Step 2: Verify TOTP Code</button>
     </div>
 
     <!-- 2FA Secret Key Display Container -->
@@ -120,7 +120,7 @@
       <option value="csv">Convert JSON to CSV (.csv)</option>
     </select>
 
-    <button id="uploadBtn">Upload & Convert</button>
+    <button type="button" id="uploadBtn">Upload & Convert</button>
 
     <div class="status-msg" id="status"></div>
   </div>
