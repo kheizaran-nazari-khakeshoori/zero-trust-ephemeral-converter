@@ -58,39 +58,47 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // STEP 1: PASSWORD LOGIN
-  login1Btn.addEventListener('click', async (e) => {
-    e.preventDefault();
-    const email = authEmail.value.trim();
-    const password = authPassword.value.trim();
+  // STEP 1: PASSWORD LOGIN (DEBUG VERSION)
+login1Btn.addEventListener('click', async (e) => {
+  e.preventDefault();
+  
+  const email = authEmail.value.trim();
+  const password = authPassword.value.trim();
 
-    if (!email || !password) return setAuthStatus('Please enter your email and password.');
+  if (!email || !password) {
+    setAuthStatus('Please enter both email and password.');
+    return;
+  }
 
-    try {
-      const res = await fetch('http://127.0.0.1:5000/api/auth/login-step1', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
-      });
-      const data = await res.json();
+  setAuthStatus('Connecting to server...', false);
 
-      if (res.ok) {
-        tempAuthToken = data.tempToken;
-        
-        // Hide password inputs and show 2FA input
-        step1Box.style.display = 'none';
-        mfaDisplay.style.display = 'none';
-        step2Box.style.display = 'block';
-        
-        setAuthStatus('Password correct! Enter the 6-digit code from Google Authenticator.', false);
-      } else {
-        setAuthStatus(data.error || 'Invalid email or password.');
-      }
-    } catch (err) {
-      console.error(err);
-      setAuthStatus('Server error during Step 1 login.');
+  try {
+    const res = await fetch('http://127.0.0.1:5000/api/auth/login-step1', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
+    });
+
+    const data = await res.json();
+
+    if (res.ok) {
+      tempAuthToken = data.tempToken;
+      
+      // Force UI transition to Step 2
+      step1Box.style.display = 'none';
+      mfaDisplay.style.display = 'none';
+      step2Box.style.display = 'block';
+      
+      setAuthStatus('Password accepted! Enter 6-digit TOTP code.', false);
+    } else {
+      // Display the exact error returned by your backend server
+      setAuthStatus(`Server Error (${res.status}): ${data.error || 'Login failed'}`);
     }
-  });
+  } catch (err) {
+    console.error('Fetch error:', err);
+    setAuthStatus('Network Error: Cannot connect to http://127.0.0.1:5000. Is your backend node server running?');
+  }
+});
 
   // STEP 2: TOTP VERIFICATION
   login2Btn.addEventListener('click', async (e) => {
