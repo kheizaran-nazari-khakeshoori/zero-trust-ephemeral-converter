@@ -28,7 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
     authStatus.style.color = isError ? '#f87171' : '#4ade80';
   }
 
-  // REGISTER: Obtains Secret Key for Google Authenticator
+  // 1. REGISTER USER
   regBtn.addEventListener('click', async (e) => {
     e.preventDefault();
     const email = authEmail.value.trim();
@@ -45,68 +45,54 @@ document.addEventListener('DOMContentLoaded', () => {
       const data = await res.json();
 
       if (res.ok) {
-        // Force display of the MFA key box
-        mfaSecretKey.innerText = data.mfaSecret || data.secret || 'KEY-GENERATED-CHECK-CONSOLE';
+        mfaSecretKey.innerText = data.mfaSecret;
         mfaDisplay.style.display = 'block';
-        setAuthStatus('Registered! Save this Secret Key in Google Authenticator, then click Step 1 Login.', false);
+        setAuthStatus('Registered! Save key in Google Authenticator, then click Step 1 Login.', false);
       } else {
         setAuthStatus(data.error || 'User already exists.');
       }
     } catch (err) {
-      console.error(err);
-      setAuthStatus('Cannot reach backend server. Ensure node server is running on port 5000.');
+      setAuthStatus('Cannot connect to http://127.0.0.1:5000');
     }
   });
 
-  // STEP 1: PASSWORD LOGIN (DEBUG VERSION)
-login1Btn.addEventListener('click', async (e) => {
-  e.preventDefault();
-  
-  const email = authEmail.value.trim();
-  const password = authPassword.value.trim();
+  // 2. STEP 1: PASSWORD LOGIN
+  login1Btn.addEventListener('click', async (e) => {
+    e.preventDefault();
+    const email = authEmail.value.trim();
+    const password = authPassword.value.trim();
 
-  if (!email || !password) {
-    setAuthStatus('Please enter both email and password.');
-    return;
-  }
+    if (!email || !password) return setAuthStatus('Please enter email and password.');
 
-  setAuthStatus('Connecting to server...', false);
+    try {
+      const res = await fetch('http://127.0.0.1:5000/api/auth/login-step1', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      const data = await res.json();
 
-  try {
-    const res = await fetch('http://127.0.0.1:5000/api/auth/login-step1', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password })
-    });
-
-    const data = await res.json();
-
-    if (res.ok) {
-      tempAuthToken = data.tempToken;
-      
-      // Force UI transition to Step 2
-      step1Box.style.display = 'none';
-      mfaDisplay.style.display = 'none';
-      step2Box.style.display = 'block';
-      
-      setAuthStatus('Password accepted! Enter 6-digit TOTP code.', false);
-    } else {
-      // Display the exact error returned by your backend server
-      setAuthStatus(`Server Error (${res.status}): ${data.error || 'Login failed'}`);
+      if (res.ok) {
+        tempAuthToken = data.tempToken;
+        step1Box.style.display = 'none';
+        mfaDisplay.style.display = 'none';
+        step2Box.style.display = 'block';
+        setAuthStatus('Password accepted! Enter 6-digit TOTP code.', false);
+      } else {
+        setAuthStatus(data.error || 'Invalid credentials.');
+      }
+    } catch (err) {
+      setAuthStatus('Cannot connect to http://127.0.0.1:5000');
     }
-  } catch (err) {
-    console.error('Fetch error:', err);
-    setAuthStatus('Network Error: Cannot connect to http://127.0.0.1:5000. Is your backend node server running?');
-  }
-});
+  });
 
-  // STEP 2: TOTP VERIFICATION
+  // 3. STEP 2: TOTP CODE VERIFICATION
   login2Btn.addEventListener('click', async (e) => {
     e.preventDefault();
     const code = totpCode.value.trim();
     const email = authEmail.value.trim();
 
-    if (!code || code.length !== 6) return setAuthStatus('Enter the 6-digit code from Authenticator.');
+    if (!code || code.length !== 6) return setAuthStatus('Enter 6-digit code.');
 
     try {
       const res = await fetch('http://127.0.0.1:5000/api/auth/login-step2', {
@@ -117,17 +103,16 @@ login1Btn.addEventListener('click', async (e) => {
       const data = await res.json();
 
       if (res.ok) {
-        setAuthStatus('Successfully logged in! You can now use the converter.', false);
+        setAuthStatus('Authentication complete! You can now convert files below.', false);
       } else {
-        setAuthStatus(data.error || 'Invalid 6-digit code.');
+        setAuthStatus(data.error || 'Invalid TOTP code.');
       }
     } catch (err) {
-      console.error(err);
-      setAuthStatus('Server error during Step 2 verification.');
+      setAuthStatus('Cannot connect to http://127.0.0.1:5000');
     }
   });
 
-  // FILE DRAG & DROP LOGIC
+  // 4. DRAG & DROP FILE SELECTION
   dropZone.addEventListener('click', () => fileInput.click());
 
   ['dragenter', 'dragover'].forEach(name => {
@@ -147,8 +132,9 @@ login1Btn.addEventListener('click', async (e) => {
   });
 
   dropZone.addEventListener('drop', (e) => {
-    if (e.dataTransfer.files.length > 0) {
-      selectedFile = e.dataTransfer.files[0];
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+      selectedFile = files[0];
       fileLabel.innerText = `Selected File: ${selectedFile.name}`;
     }
   });
@@ -160,14 +146,50 @@ login1Btn.addEventListener('click', async (e) => {
     }
   });
 
-  uploadBtn.addEventListener('click', (e) => {
+  // 5. UPLOAD & CONVERT FILE
+  uploadBtn.addEventListener('click', async (e) => {
     e.preventDefault();
+
     if (!selectedFile) {
-      statusMsg.innerText = 'Please drag or select a file first.';
+      statusMsg.innerText = 'Please select or drag a file first.';
       statusMsg.style.color = '#f87171';
       return;
     }
-    statusMsg.innerText = `File "${selectedFile.name}" selected.`;
-    statusMsg.style.color = '#4ade80';
+
+    const formData = new FormData();
+    formData.append('file', selectedFile);
+    formData.append('targetFormat', document.getElementById('formatSelect').value);
+
+    statusMsg.innerText = 'Converting file...';
+    statusMsg.style.color = '#38bdf8';
+
+    try {
+      const res = await fetch('http://127.0.0.1:5000/api/convert', {
+        method: 'POST',
+        body: formData
+      });
+
+      if (!res.ok) {
+        const errData = await res.json();
+        statusMsg.innerText = errData.error || 'Conversion failed.';
+        statusMsg.style.color = '#f87171';
+        return;
+      }
+
+      const blob = await res.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = downloadUrl;
+      a.download = `converted_${Date.now()}.${document.getElementById('formatSelect').value}`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+
+      statusMsg.innerText = 'File converted and downloaded successfully!';
+      statusMsg.style.color = '#4ade80';
+    } catch (err) {
+      statusMsg.innerText = 'Failed to connect to converter server.';
+      statusMsg.style.color = '#f87171';
+    }
   });
 });
