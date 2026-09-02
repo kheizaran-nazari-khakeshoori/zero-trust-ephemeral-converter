@@ -27,8 +27,9 @@ document.addEventListener('DOMContentLoaded', () => {
     authStatus.style.color = success ? '#4ade80' : '#f87171';
   }
 
-  // Register
-  regBtn.addEventListener('click', async () => {
+  // 1. REGISTER
+  regBtn.addEventListener('click', async (e) => {
+    e.preventDefault();
     const email = authEmail.value.trim();
     const password = authPassword.value.trim();
 
@@ -54,8 +55,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Step 1: Password Login
-  login1Btn.addEventListener('click', async () => {
+  // 2. STEP 1: PASSWORD LOGIN
+  login1Btn.addEventListener('click', async (e) => {
+    e.preventDefault(); // Prevents page reload
     const email = authEmail.value.trim();
     const password = authPassword.value.trim();
 
@@ -83,8 +85,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Step 2: TOTP Login
-  login2Btn.addEventListener('click', async () => {
+  // 3. STEP 2: TOTP LOGIN
+  login2Btn.addEventListener('click', async (e) => {
+    e.preventDefault(); // Prevents page reload
     const code = totpCode.value.trim();
     const email = authEmail.value.trim();
 
@@ -109,7 +112,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Drag and Drop
+  // Drag and Drop Logic
   dropZone.addEventListener('click', () => fileInput.click());
   dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
   dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
@@ -128,13 +131,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  uploadBtn.addEventListener('click', () => {
+  uploadBtn.addEventListener('click', (e) => {
+    e.preventDefault();
     if (!selectedFile) {
       statusMsg.innerText = 'Select a file first.';
       statusMsg.style.color = '#f87171';
       return;
     }
-    statusMsg.innerText = `File "${selectedFile.name}" selected.`;
+    statusMsg.innerText = `File "${selectedFile.name}" selected for conversion.`;
     statusMsg.style.color = '#4ade80';
   });
 });
