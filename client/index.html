@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SecureConvert | Multi-Factor Secure File Conversion</title>
+  <title>SecureConvert | Zero-Knowledge File Converter</title>
   <style>
     body {
       font-family: system-ui, -apple-system, sans-serif;
@@ -70,9 +70,9 @@
 </head>
 <body>
 
-  <!-- Auth Card (No form wrapper to prevent reload) -->
+  <!-- Top Card: 3-Step Authentication -->
   <div class="card" id="authCard">
-    <h2 style="margin-top: 0;">🔐 2-Step Authentication</h2>
+    <h2 style="margin-top: 0;">🔐 3-Step Authentication</h2>
     
     <div id="step1Box">
       <input type="email" id="authEmail" placeholder="Email Address">
@@ -83,7 +83,7 @@
       </div>
     </div>
 
-    <div id="step2Box" style="display: none;">
+    <div id="step2Box" style="display: none; margin-top: 1rem;">
       <p style="font-size: 0.85rem; color: #94a3b8;">Enter 6-digit TOTP code from Authenticator App:</p>
       <input type="text" id="totpCode" placeholder="123456" maxlength="6">
       <button type="button" id="login2Btn">Step 2: Verify TOTP Code</button>
@@ -97,14 +97,14 @@
     <div class="status-msg" id="authStatus"></div>
   </div>
 
-  <!-- User Dashboard Card -->
-  <div class="card" id="dashboardCard" style="display: none;">
-    <h2 style="margin-top: 0;">🔒 User Dashboard</h2>
+  <!-- Bottom Card: SecureConvert Dashboard -->
+  <div class="card" id="dashboardCard">
+    <h2 style="margin-top: 0;">🔒 SecureConvert</h2>
     <p style="font-size: 0.85rem; color: #94a3b8;">Ephemeral, In-Memory File Processing</p>
 
     <div class="drop-zone" id="dropZone">
-      <p id="fileLabel">Drag & drop a file here or click to select</p>
-      <input type="file" id="fileInput" hidden>
+      <p id="fileLabel" style="margin: 0; pointer-events: none;">Drag & drop a file here or click to select</p>
+      <input type="file" id="fileInput" style="display: none;">
     </div>
 
     <label for="formatSelect" style="display: block; text-align: left; font-size: 0.85rem; margin-bottom: 0.4rem; color: #94a3b8;">Choose Output Format:</label>

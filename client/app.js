@@ -11,8 +11,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const step2Box = document.getElementById('step2Box');
   const totpCode = document.getElementById('totpCode');
 
-  const authCard = document.getElementById('authCard');
-  const dashboardCard = document.getElementById('dashboardCard');
   const dropZone = document.getElementById('dropZone');
   const fileInput = document.getElementById('fileInput');
   const fileLabel = document.getElementById('fileLabel');
@@ -22,9 +20,9 @@ document.addEventListener('DOMContentLoaded', () => {
   let tempAuthToken = '';
   let selectedFile = null;
 
-  function showStatus(msg, success = false) {
+  function setAuthStatus(msg, isError = true) {
     authStatus.innerText = msg;
-    authStatus.style.color = success ? '#4ade80' : '#f87171';
+    authStatus.style.color = isError ? '#f87171' : '#4ade80';
   }
 
   // 1. REGISTER
@@ -33,7 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const email = authEmail.value.trim();
     const password = authPassword.value.trim();
 
-    if (!email || !password) return showStatus('Enter both email and password.');
+    if (!email || !password) return setAuthStatus('Please fill in both email and password.');
 
     try {
       const res = await fetch('http://127.0.0.1:5000/api/auth/register', {
@@ -46,22 +44,22 @@ document.addEventListener('DOMContentLoaded', () => {
       if (res.ok) {
         mfaSecretKey.innerText = data.mfaSecret;
         mfaDisplay.style.display = 'block';
-        showStatus('Registered! Copy key, then click Step 1: Password Login.', true);
+        setAuthStatus('Registration successful! Save key and proceed to Step 1.', false);
       } else {
-        showStatus(data.error || 'Registration failed.');
+        setAuthStatus(data.error || 'User already exists.');
       }
     } catch (err) {
-      showStatus('Cannot reach server at http://127.0.0.1:5000');
+      setAuthStatus('Cannot connect to server at http://127.0.0.1:5000');
     }
   });
 
-  // 2. STEP 1: PASSWORD LOGIN
+  // 2. STEP 1 LOGIN
   login1Btn.addEventListener('click', async (e) => {
-    e.preventDefault(); // Prevents page reload
+    e.preventDefault();
     const email = authEmail.value.trim();
     const password = authPassword.value.trim();
 
-    if (!email || !password) return showStatus('Enter both email and password.');
+    if (!email || !password) return setAuthStatus('Please enter email and password.');
 
     try {
       const res = await fetch('http://127.0.0.1:5000/api/auth/login-step1', {
@@ -76,22 +74,22 @@ document.addEventListener('DOMContentLoaded', () => {
         step1Box.style.display = 'none';
         mfaDisplay.style.display = 'none';
         step2Box.style.display = 'block';
-        showStatus('Password accepted! Enter 6-digit TOTP code.', true);
+        setAuthStatus('Password accepted! Enter 6-digit TOTP code.', false);
       } else {
-        showStatus(data.error || 'Invalid credentials.');
+        setAuthStatus(data.error || 'Invalid credentials.');
       }
     } catch (err) {
-      showStatus('Cannot reach server at http://127.0.0.1:5000');
+      setAuthStatus('Cannot connect to server at http://127.0.0.1:5000');
     }
   });
 
-  // 3. STEP 2: TOTP LOGIN
+  // 3. STEP 2 TOTP LOGIN
   login2Btn.addEventListener('click', async (e) => {
-    e.preventDefault(); // Prevents page reload
+    e.preventDefault();
     const code = totpCode.value.trim();
     const email = authEmail.value.trim();
 
-    if (!code || code.length !== 6) return showStatus('Enter a 6-digit TOTP code.');
+    if (!code || code.length !== 6) return setAuthStatus('Enter 6-digit code.');
 
     try {
       const res = await fetch('http://127.0.0.1:5000/api/auth/login-step2', {
@@ -102,43 +100,58 @@ document.addEventListener('DOMContentLoaded', () => {
       const data = await res.json();
 
       if (res.ok) {
-        authCard.style.display = 'none';
-        dashboardCard.style.display = 'block';
+        setAuthStatus('Authentication complete! You can now convert files below.', false);
       } else {
-        showStatus(data.error || 'Invalid 2FA Code.');
+        setAuthStatus(data.error || 'Invalid TOTP code.');
       }
     } catch (err) {
-      showStatus('Cannot reach server at http://127.0.0.1:5000');
+      setAuthStatus('Cannot connect to server at http://127.0.0.1:5000');
     }
   });
 
-  // Drag and Drop Logic
+  // DRAG AND DROP FIXES
   dropZone.addEventListener('click', () => fileInput.click());
-  dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
-  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+
+  ['dragenter', 'dragover'].forEach(eventName => {
+    dropZone.addEventListener(eventName, (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      dropZone.classList.add('dragover');
+    }, false);
+  });
+
+  ['dragleave', 'drop'].forEach(eventName => {
+    dropZone.addEventListener(eventName, (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      dropZone.classList.remove('dragover');
+    }, false);
+  });
+
   dropZone.addEventListener('drop', (e) => {
-    e.preventDefault();
-    dropZone.classList.remove('dragover');
-    if (e.dataTransfer.files.length) {
-      selectedFile = e.dataTransfer.files[0];
-      fileLabel.innerText = `Selected: ${selectedFile.name}`;
+    const dt = e.dataTransfer;
+    const files = dt.files;
+    if (files.length > 0) {
+      selectedFile = files[0];
+      fileLabel.innerText = `Selected File: ${selectedFile.name}`;
     }
   });
+
   fileInput.addEventListener('change', (e) => {
-    if (e.target.files.length) {
+    if (e.target.files.length > 0) {
       selectedFile = e.target.files[0];
-      fileLabel.innerText = `Selected: ${selectedFile.name}`;
+      fileLabel.innerText = `Selected File: ${selectedFile.name}`;
     }
   });
 
   uploadBtn.addEventListener('click', (e) => {
     e.preventDefault();
     if (!selectedFile) {
-      statusMsg.innerText = 'Select a file first.';
+      statusMsg.innerText = 'Please select or drag a file first.';
       statusMsg.style.color = '#f87171';
       return;
     }
-    statusMsg.innerText = `File "${selectedFile.name}" selected for conversion.`;
+    statusMsg.innerText = `File "${selectedFile.name}" ready for conversion!`;
     statusMsg.style.color = '#4ade80';
   });
 });
