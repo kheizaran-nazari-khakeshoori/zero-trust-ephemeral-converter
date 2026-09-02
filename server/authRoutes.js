@@ -1,100 +1,89 @@
 import express from 'express';
-import bcrypt from 'bcryptjs';
 import speakeasy from 'speakeasy';
-import crypto from 'crypto';
-import { UserDB } from './userDb.js';
 
 const router = express.Router();
 
-// 1. REGISTER ROUTE
-router.post('/register', async (req, res) => {
-  try {
-    const { email, password } = req.body;
+// Temporary in-memory user storage (Reset on server restart)
+const users = new Map();
 
-    if (!email || !password || password.length < 8) {
-      return res.status(400).json({ error: 'Email and password (min 8 chars) required.' });
-    }
+// 1. REGISTER: Creates user & generates 2FA Secret Key
+router.post('/register', (req, res) => {
+  const { email, password } = req.body;
 
-    const existingUser = await UserDB.findByEmail(email);
-    if (existingUser) {
-      return res.status(400).json({ error: 'User already exists.' });
-    }
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-    await UserDB.createUser(email, hashedPassword);
-
-    const secret = speakeasy.generateSecret({ length: 20 });
-    const mfaSecret = secret.base32;
-
-    await UserDB.updateUser(email, { mfaSecret, mfaEnabled: 1 });
-
-    res.json({
-      message: 'Registration successful!',
-      mfaSecret: mfaSecret
-    });
-  } catch (err) {
-    console.error('Registration Error:', err);
-    res.status(500).json({ error: 'Server error during registration.' });
+  if (!email || !password) {
+    return res.status(400).json({ error: 'Email and password are required.' });
   }
+
+  if (users.has(email)) {
+    return res.status(400).json({ error: 'User already exists.' });
+  }
+
+  // Generate 2FA Secret Key for Google Authenticator
+  const secret = speakeasy.generateSecret({
+    name: `SecureConvert (${email})`
+  });
+
+  users.set(email, {
+    password,
+    mfaSecret: secret.base32
+  });
+
+  return res.status(200).json({
+    message: 'User registered successfully!',
+    mfaSecret: secret.base32
+  });
 });
 
-// 2. LOGIN STEP 1 (Password Verification)
-router.post('/login-step1', async (req, res) => {
-  try {
-    const { email, password } = req.body;
+// 2. STEP 1: PASSWORD LOGIN
+router.post('/login-step1', (req, res) => {
+  const { email, password } = req.body;
 
-    const user = await UserDB.findByEmail(email);
-    if (!user || !user.passwordHash) {
-      return res.status(401).json({ error: 'Invalid credentials.' });
-    }
-
-    const validPassword = await bcrypt.compare(password, user.passwordHash);
-    if (!validPassword) {
-      return res.status(401).json({ error: 'Invalid credentials.' });
-    }
-
-    const step3Token = crypto.randomBytes(32).toString('hex');
-    await UserDB.updateUser(email, { step3Token });
-
-    res.json({ tempToken: step3Token });
-  } catch (err) {
-    console.error('Login Step 1 Error:', err);
-    res.status(500).json({ error: 'Server error during login.' });
+  if (!email || !password) {
+    return res.status(400).json({ error: 'Email and password are required.' });
   }
+
+  const user = users.get(email);
+  if (!user || user.password !== password) {
+    return res.status(401).json({ error: 'Invalid email or password.' });
+  }
+
+  // Generate a temporary session token for Step 2
+  const tempToken = Math.random().toString(36).substring(2) + Date.now().toString(36);
+
+  return res.status(200).json({
+    message: 'Password accepted. Proceed to Step 2.',
+    tempToken
+  });
 });
 
-// 3. LOGIN STEP 2 (2FA Verification)
-router.post('/login-step2', async (req, res) => {
-  try {
-    const { email, tempToken, totpCode } = req.body;
+// 3. STEP 2: TOTP CODE VERIFICATION
+router.post('/login-step2', (req, res) => {
+  const { email, tempToken, totpCode } = req.body;
 
-    if (!email || !totpCode) {
-      return res.status(400).json({ error: 'Missing email or 2FA code.' });
-    }
-
-    const user = await UserDB.findByEmail(email);
-
-    if (!user || !user.mfaSecret) {
-      return res.status(400).json({ error: 'User 2FA not initialized.' });
-    }
-
-    const isValid = speakeasy.totp.verify({
-      secret: user.mfaSecret,
-      encoding: 'base32',
-      token: totpCode,
-      window: 1
-    });
-
-    if (!isValid) {
-      return res.status(401).json({ error: 'Invalid 2FA Code.' });
-    }
-
-    const sessionToken = crypto.randomBytes(32).toString('hex');
-    res.json({ sessionToken });
-  } catch (err) {
-    console.error('Login Step 2 Error:', err);
-    res.status(500).json({ error: 'Server error during 2FA.' });
+  if (!email || !tempToken || !totpCode) {
+    return res.status(400).json({ error: 'Missing required 2FA parameters.' });
   }
+
+  const user = users.get(email);
+  if (!user) {
+    return res.status(404).json({ error: 'User not found.' });
+  }
+
+  // Verify the 6-digit TOTP token against the user's secret
+  const verified = speakeasy.totp.verify({
+    secret: user.mfaSecret,
+    encoding: 'base32',
+    token: totpCode,
+    window: 1 // Allows 30 seconds time drift grace period
+  });
+
+  if (!verified) {
+    return res.status(400).json({ error: 'Invalid 6-digit TOTP code.' });
+  }
+
+  return res.status(200).json({
+    message: '2FA authentication successful!'
+  });
 });
 
 export default router;
