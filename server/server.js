@@ -6,6 +6,7 @@ import multer from 'multer';
 import { validateMagicBytes } from './fileValidator.js';
 import { convertMarkdownToHtml, convertJsonToCsv } from './converter.js';
 import authRoutes from './authRoutes.js';
+import { requireAuth } from './authMiddleware.js';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -40,7 +41,7 @@ const upload = multer({
 });
 
 // File Conversion Endpoint with Magic Byte Inspection
-app.post('/api/convert', upload.single('file'), (req, res) => {
+app.post('/api/convert', requireAuth, upload.single('file'), (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: 'No file uploaded.' });
   }
