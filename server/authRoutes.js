@@ -2,9 +2,11 @@ import express from 'express';
 import speakeasy from 'speakeasy';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
+import jwt from 'jsonwebtoken';
 import { UserDB } from './userDb.js';
 
 const router = express.Router();
+const jwtSecret = process.env.JWT_SECRET || 'development-only-change-this-secret';
 
 router.post('/register', async (req, res) => {
   const { email, password } = req.body;
@@ -86,8 +88,18 @@ router.post('/login-step2', async (req, res) => {
 
   await UserDB.updateUser(normalizedEmail, { step3Token: null });
 
+  const sessionId = crypto.randomUUID();
+  const accessToken = jwt.sign(
+    { userId: user.id },
+    jwtSecret,
+    { expiresIn: '1h', jwtid: sessionId }
+  );
+  const decodedToken = jwt.decode(accessToken);
+  await UserDB.createSession(sessionId, user.id, accessToken, decodedToken.exp * 1000);
+
   return res.status(200).json({
-    message: '2FA authentication successful!'
+    message: '2FA authentication successful!',
+    accessToken
   });
 });
 
