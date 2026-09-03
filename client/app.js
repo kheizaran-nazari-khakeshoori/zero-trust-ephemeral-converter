@@ -21,6 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const statusMsg = document.getElementById('status');
 
   let tempAuthToken = '';
+  let accessToken = sessionStorage.getItem('accessToken') || '';
   let selectedFile = null;
 
   function setAuthStatus(msg, isError = true) {
@@ -103,6 +104,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const data = await res.json();
 
       if (res.ok) {
+        accessToken = data.accessToken;
+        sessionStorage.setItem('accessToken', accessToken);
         setAuthStatus('Authentication complete! You can now convert files below.', false);
       } else {
         setAuthStatus(data.error || 'Invalid TOTP code.');
@@ -156,6 +159,12 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
+    if (!accessToken) {
+      statusMsg.innerText = 'Please complete authentication first.';
+      statusMsg.style.color = '#f87171';
+      return;
+    }
+
     const formData = new FormData();
     formData.append('file', selectedFile);
     formData.append('targetFormat', document.getElementById('formatSelect').value);
@@ -166,11 +175,16 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       const res = await fetch('http://127.0.0.1:5000/api/convert', {
         method: 'POST',
+        headers: { Authorization: `Bearer ${accessToken}` },
         body: formData
       });
 
       if (!res.ok) {
         const errData = await res.json();
+        if (res.status === 401) {
+          accessToken = '';
+          sessionStorage.removeItem('accessToken');
+        }
         statusMsg.innerText = errData.error || 'Conversion failed.';
         statusMsg.style.color = '#f87171';
         return;
