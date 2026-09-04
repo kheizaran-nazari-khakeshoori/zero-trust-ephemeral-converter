@@ -9,7 +9,7 @@ const FILE_SIGNATURES = {
 };
 
 export function validateMagicBytes(buffer) {
-  if (!buffer || buffer.length < 8) return null;
+  if (!Buffer.isBuffer(buffer) || buffer.length === 0) return null;
 
   for (const [type, signature] of Object.entries(FILE_SIGNATURES)) {
     let matches = true;
@@ -22,7 +22,22 @@ export function validateMagicBytes(buffer) {
     if (matches) return type;
   }
 
-  // Return plain text if valid ASCII range, otherwise null for unknown binary
-  const isAscii = buffer.slice(0, 100).every(byte => byte >= 0x09 && byte <= 0x7e);
-  return isAscii ? 'txt' : null;
+  const text = buffer.toString('utf8');
+  if (text.includes('\uFFFD') || text.includes('\u0000')) return null;
+
+  const trimmedText = text.replace(/^\uFEFF/, '').trim();
+  if (trimmedText.startsWith('{') || trimmedText.startsWith('[')) {
+    try {
+      const parsed = JSON.parse(trimmedText);
+      return parsed !== null && typeof parsed === 'object' ? 'json' : null;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  const isText = [...text.slice(0, 100)].every(character => {
+    const code = character.charCodeAt(0);
+    return code === 0x09 || code === 0x0a || code === 0x0d || code >= 0x20;
+  });
+  return isText ? 'txt' : null;
 }
