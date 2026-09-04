@@ -7,6 +7,11 @@ import { validateMagicBytes } from './fileValidator.js';
 import { convertMarkdownToHtml, convertJsonToCsv } from './converter.js';
 import authRoutes from './authRoutes.js';
 import { requireAuth } from './authMiddleware.js';
+import {
+  ALLOWED_TARGET_FORMATS,
+  MAX_UPLOAD_SIZE,
+  validateOriginalFilename
+} from './inputValidation.js';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -37,7 +42,18 @@ app.use('/api/auth', authRoutes);
 const storage = multer.memoryStorage(); 
 const upload = multer({ 
   storage: storage,
-  limits: { fileSize: 10 * 1024 * 1024 } // 10 MB limit
+  limits: {
+    fileSize: MAX_UPLOAD_SIZE,
+    files: 1,
+    fields: 2,
+    parts: 3
+  },
+  fileFilter: (req, file, callback) => {
+    if (!validateOriginalFilename(file.originalname)) {
+      return callback(new Error('Invalid file name.'));
+    }
+    return callback(null, true);
+  }
 });
 
 // File Conversion Endpoint with Magic Byte Inspection
@@ -47,7 +63,13 @@ app.post('/api/convert', requireAuth, upload.single('file'), (req, res) => {
   }
 
   const detectedType = validateMagicBytes(req.file.buffer);
-  const targetFormat = req.body.targetFormat || 'html';
+  const targetFormat = typeof req.body.targetFormat === 'string'
+    ? req.body.targetFormat.trim().toLowerCase()
+    : '';
+
+  if (!ALLOWED_TARGET_FORMATS.has(targetFormat)) {
+    return res.status(400).json({ error: 'Choose a supported target format: html or csv.' });
+  }
 
   if (!detectedType) {
     return res.status(400).json({ 
