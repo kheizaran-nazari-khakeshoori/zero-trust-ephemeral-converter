@@ -90,15 +90,21 @@ export function convertJsonToCsv(jsonBuffer) {
   try {
     const data = JSON.parse(jsonBuffer.toString('utf-8'));
     if (!Array.isArray(data) || data.length === 0) return null;
+    if (!data.every(row => row && typeof row === 'object' && !Array.isArray(row))) return null;
 
-    const headers = Object.keys(data[0]);
-    const csvRows = [headers.join(',')];
+    const headers = [...new Set(data.flatMap(row => Object.keys(row)))];
+    if (headers.length === 0) return null;
+
+    const escapeCsv = value => {
+      if (value === null || value === undefined) return '';
+      const text = typeof value === 'object' ? JSON.stringify(value) : String(value);
+      return `"${text.replace(/"/g, '""')}"`;
+    };
+
+    const csvRows = [headers.map(escapeCsv).join(',')];
 
     for (const row of data) {
-      const values = headers.map(header => {
-        const val = row[header] ?? '';
-        return `"${String(val).replace(/"/g, '""')}"`;
-      });
+      const values = headers.map(header => escapeCsv(row[header]));
       csvRows.push(values.join(','));
     }
 
