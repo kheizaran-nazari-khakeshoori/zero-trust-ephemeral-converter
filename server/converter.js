@@ -1,3 +1,5 @@
+import PDFDocument from 'pdfkit';
+
 export function convertMarkdownToHtml(markdownText) {
   if (typeof markdownText !== 'string') return null;
 
@@ -45,6 +47,31 @@ export function convertMarkdownToHtml(markdownText) {
   if (inList) htmlLines.push('</ul>');
 
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Converted Document</title></head><body>${htmlLines.join('')}</body></html>`;
+}
+
+export function convertMarkdownToPdf(markdownText) {
+  if (typeof markdownText !== 'string' || !markdownText.trim()) return null;
+
+  return new Promise((resolve, reject) => {
+    const document = new PDFDocument({ margin: 50 });
+    const chunks = [];
+
+    document.on('data', chunk => chunks.push(chunk));
+    document.on('end', () => resolve(Buffer.concat(chunks)));
+    document.on('error', reject);
+
+    for (const line of markdownText.replace(/\r\n?/g, '\n').split('\n')) {
+      const heading = line.match(/^\s*(#{1,3})\s+(.+)$/);
+      if (heading) {
+        const size = { 1: 24, 2: 18, 3: 14 }[heading[1].length];
+        document.fontSize(size).text(heading[2]).moveDown(0.5);
+      } else if (line.trim()) {
+        document.fontSize(11).text(line).moveDown(0.35);
+      }
+    }
+
+    document.end();
+  });
 }
 
 // Simple JSON to CSV converter in RAM
