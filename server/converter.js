@@ -1,4 +1,5 @@
 import PDFDocument from 'pdfkit';
+import sharp from 'sharp';
 
 export function convertMarkdownToHtml(markdownText) {
   if (typeof markdownText !== 'string') return null;
@@ -72,6 +73,16 @@ export function convertMarkdownToPdf(markdownText) {
 
     document.end();
   });
+}
+
+export async function convertPngToWebp(imageBuffer) {
+  if (!Buffer.isBuffer(imageBuffer) || imageBuffer.length === 0) return null;
+
+  try {
+    return await sharp(imageBuffer).webp({ quality: 85 }).toBuffer();
+  } catch (error) {
+    return null;
+  }
 }
 
 // Simple JSON to CSV converter in RAM
