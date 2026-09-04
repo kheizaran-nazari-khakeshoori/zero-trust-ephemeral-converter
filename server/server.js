@@ -4,7 +4,12 @@ import cors from 'cors';
 import rateLimit from 'express-rate-limit';
 import multer from 'multer';
 import { validateMagicBytes } from './fileValidator.js';
-import { convertMarkdownToHtml, convertJsonToCsv } from './converter.js';
+import {
+  convertMarkdownToHtml,
+  convertMarkdownToPdf,
+  convertPngToWebp,
+  convertJsonToCsv
+} from './converter.js';
 import authRoutes from './authRoutes.js';
 import { requireAuth } from './authMiddleware.js';
 import {
@@ -57,7 +62,7 @@ const upload = multer({
 });
 
 // File Conversion Endpoint with Magic Byte Inspection
-app.post('/api/convert', requireAuth, upload.single('file'), (req, res) => {
+app.post('/api/convert', requireAuth, upload.single('file'), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: 'No file uploaded.' });
   }
@@ -68,13 +73,23 @@ app.post('/api/convert', requireAuth, upload.single('file'), (req, res) => {
     : '';
 
   if (!ALLOWED_TARGET_FORMATS.has(targetFormat)) {
-    return res.status(400).json({ error: 'Choose a supported target format: html or csv.' });
+    return res.status(400).json({ error: 'Choose a supported target format: html, pdf, csv, or webp.' });
   }
 
   if (!detectedType) {
     return res.status(400).json({ 
-      error: 'Security Alert: Invalid or unverified file signature detected.' 
+      error: 'The file type could not be verified. Upload a valid text, JSON, or PNG file.'
     });
+  }
+
+  if (targetFormat === 'webp' && detectedType !== 'png') {
+    return res.status(400).json({ error: 'WebP conversion requires a PNG image.' });
+  }
+  if (['html', 'pdf'].includes(targetFormat) && !['txt', 'json'].includes(detectedType)) {
+    return res.status(400).json({ error: 'HTML and PDF conversion requires a text or Markdown file.' });
+  }
+  if (targetFormat === 'csv' && detectedType !== 'json') {
+    return res.status(400).json({ error: 'CSV conversion requires a valid JSON file.' });
   }
 
   console.log(`Processing ${req.file.originalname} (${detectedType}) -> ${targetFormat}`);
@@ -87,6 +102,26 @@ app.post('/api/convert', requireAuth, upload.single('file'), (req, res) => {
     res.setHeader('Content-Type', 'text/html');
     res.setHeader('Content-Disposition', `attachment; filename="converted_${Date.now()}.html"`);
     return res.send(convertedHtml);
+  }
+
+  if (targetFormat === 'pdf') {
+    const convertedPdf = await convertMarkdownToPdf(rawContent);
+    if (!convertedPdf) {
+      return res.status(400).json({ error: 'The text file does not contain convertible content.' });
+    }
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="converted_${Date.now()}.pdf"`);
+    return res.send(convertedPdf);
+  }
+
+  if (targetFormat === 'webp') {
+    const convertedWebp = await convertPngToWebp(req.file.buffer);
+    if (!convertedWebp) {
+      return res.status(400).json({ error: 'The PNG image could not be converted to WebP.' });
+    }
+    res.setHeader('Content-Type', 'image/webp');
+    res.setHeader('Content-Disposition', `attachment; filename="converted_${Date.now()}.webp"`);
+    return res.send(convertedWebp);
   }
 
   // Convert JSON to CSV
