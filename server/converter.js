@@ -1,17 +1,50 @@
-// Simple Markdown to HTML converter in RAM
 export function convertMarkdownToHtml(markdownText) {
-  let html = markdownText
-    // Headers
-    .replace(/^# (.*$)/gim, '<h1>$1</h1>')
-    .replace(/^## (.*$)/gim, '<h2>$1</h2>')
-    .replace(/^### (.*$)/gim, '<h3>$1</h3>')
-    // Bold & Italic
-    .replace(/\*\*(.*)\*\*/gim, '<b>$1</b>')
-    .replace(/\*(.*)\*/gim, '<i>$1</i>')
-    // Paragraphs
-    .replace(/\n$/gim, '<br />');
+  if (typeof markdownText !== 'string') return null;
 
-  return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Converted Document</title></head><body>${html.trim()}</body></html>`;
+  const escapeHtml = value => value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+
+  const inlineMarkdown = value => escapeHtml(value)
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*([^*]+)\*/g, '<em>$1</em>');
+
+  const lines = markdownText.replace(/\r\n?/g, '\n').split('\n');
+  const htmlLines = [];
+  let inList = false;
+
+  for (const line of lines) {
+    const listItem = line.match(/^\s*[-*]\s+(.+)$/);
+    if (listItem) {
+      if (!inList) {
+        htmlLines.push('<ul>');
+        inList = true;
+      }
+      htmlLines.push(`<li>${inlineMarkdown(listItem[1])}</li>`);
+      continue;
+    }
+
+    if (inList) {
+      htmlLines.push('</ul>');
+      inList = false;
+    }
+
+    const heading = line.match(/^\s*(#{1,3})\s+(.+)$/);
+    if (heading) {
+      const level = heading[1].length;
+      htmlLines.push(`<h${level}>${inlineMarkdown(heading[2])}</h${level}>`);
+    } else if (line.trim()) {
+      htmlLines.push(`<p>${inlineMarkdown(line)}</p>`);
+    }
+  }
+
+  if (inList) htmlLines.push('</ul>');
+
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Converted Document</title></head><body>${htmlLines.join('')}</body></html>`;
 }
 
 // Simple JSON to CSV converter in RAM
