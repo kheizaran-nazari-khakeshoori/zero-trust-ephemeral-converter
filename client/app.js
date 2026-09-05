@@ -29,6 +29,15 @@ document.addEventListener('DOMContentLoaded', () => {
     authStatus.style.color = isError ? '#f87171' : '#4ade80';
   }
 
+  async function getErrorMessage(response, fallback) {
+    try {
+      const data = await response.json();
+      return data.error || fallback;
+    } catch (error) {
+      return fallback;
+    }
+  }
+
   // 1. REGISTER USER
   regBtn.addEventListener('click', async (e) => {
     e.preventDefault();
@@ -46,8 +55,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const data = await res.json();
 
       if (res.ok) {
-        mfaSecretKey.innerText = data.mfaSecret;
-        mfaDisplay.style.display = 'block';
+        statusMsg.innerText = await getErrorMessage(res, 'Conversion failed.');
         setAuthStatus('Registered! Save key in Google Authenticator, then click Step 1 Login.', false);
       } else {
         setAuthStatus(data.error || 'User already exists.');
