@@ -179,6 +179,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     statusMsg.innerText = 'Converting file...';
     statusMsg.style.color = '#38bdf8';
+    uploadBtn.disabled = true;
+    uploadBtn.innerText = 'Converting...';
 
     try {
       const res = await fetch('http://127.0.0.1:5000/api/convert', {
@@ -212,6 +214,9 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (err) {
       statusMsg.innerText = 'Failed to connect to converter server.';
       statusMsg.style.color = '#f87171';
+    } finally {
+      uploadBtn.disabled = false;
+      uploadBtn.innerText = 'Upload & Convert';
     }
   });
 });
