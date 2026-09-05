@@ -38,6 +38,21 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  function uploadForConversion(formData, onProgress) {
+    return new Promise((resolve, reject) => {
+      const request = new XMLHttpRequest();
+      request.open('POST', 'http://127.0.0.1:5000/api/convert');
+      request.setRequestHeader('Authorization', `Bearer ${accessToken}`);
+      request.responseType = 'blob';
+      request.upload.addEventListener('progress', event => {
+        if (event.lengthComputable) onProgress(Math.round((event.loaded / event.total) * 100));
+      });
+      request.addEventListener('load', () => resolve(request));
+      request.addEventListener('error', reject);
+      request.send(formData);
+    });
+  }
+
   // 1. REGISTER USER
   regBtn.addEventListener('click', async (e) => {
     e.preventDefault();
@@ -55,7 +70,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const data = await res.json();
 
       if (res.ok) {
-        statusMsg.innerText = await getErrorMessage(res, 'Conversion failed.');
+        mfaSecretKey.innerText = data.mfaSecret;
         setAuthStatus('Registered! Save key in Google Authenticator, then click Step 1 Login.', false);
       } else {
         setAuthStatus(data.error || 'User already exists.');
@@ -183,24 +198,28 @@ document.addEventListener('DOMContentLoaded', () => {
     uploadBtn.innerText = 'Converting...';
 
     try {
-      const res = await fetch('http://127.0.0.1:5000/api/convert', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${accessToken}` },
-        body: formData
+      const res = await uploadForConversion(formData, progress => {
+        statusMsg.innerText = `Uploading file... ${progress}%`;
       });
 
       if (!res.ok) {
-        const errData = await res.json();
+        let errorMessage = 'Conversion failed.';
+        try {
+          const errorData = JSON.parse(await res.response.text());
+          errorMessage = errorData.error || errorMessage;
+        } catch (error) {
+          errorMessage = 'The server returned an unreadable error.';
+        }
         if (res.status === 401) {
           accessToken = '';
           sessionStorage.removeItem('accessToken');
         }
-        statusMsg.innerText = errData.error || 'Conversion failed.';
+        statusMsg.innerText = errorMessage;
         statusMsg.style.color = '#f87171';
         return;
       }
 
-      const blob = await res.blob();
+      const blob = res.response;
       const downloadUrl = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = downloadUrl;
