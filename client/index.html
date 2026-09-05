@@ -104,13 +104,15 @@
 
     <div class="drop-zone" id="dropZone">
       <p id="fileLabel" style="margin: 0; pointer-events: none;">Drag & drop a file here or click to select</p>
-      <input type="file" id="fileInput" style="display: none;">
+      <input type="file" id="fileInput" accept=".md,.markdown,.txt,.json,.png" style="display: none;">
     </div>
 
     <label for="formatSelect" style="display: block; text-align: left; font-size: 0.85rem; margin-bottom: 0.4rem; color: #94a3b8;">Choose Output Format:</label>
     <select id="formatSelect">
       <option value="html">Convert Text/Markdown to HTML (.html)</option>
+      <option value="pdf">Convert Text/Markdown to PDF (.pdf)</option>
       <option value="csv">Convert JSON to CSV (.csv)</option>
+      <option value="webp">Convert PNG to WebP (.webp)</option>
     </select>
 
     <button type="button" id="uploadBtn">Upload & Convert</button>
