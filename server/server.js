@@ -12,6 +12,7 @@ import {
 } from './converter.js';
 import authRoutes from './authRoutes.js';
 import { requireAuth } from './authMiddleware.js';
+import { UserDB } from './userDb.js';
 import {
   ALLOWED_TARGET_FORMATS,
   MAX_UPLOAD_SIZE,
@@ -92,6 +93,14 @@ app.post('/api/convert', requireAuth, upload.single('file'), async (req, res) =>
     return res.status(400).json({ error: 'CSV conversion requires a valid JSON file.' });
   }
 
+  await UserDB.createConversionJob(
+    req.user.id,
+    req.file.originalname,
+    detectedType,
+    targetFormat,
+    'completed'
+  );
+
   console.log(`Processing ${req.file.originalname} (${detectedType}) -> ${targetFormat}`);
 
   const rawContent = req.file.buffer.toString('utf-8');
@@ -136,6 +145,11 @@ app.post('/api/convert', requireAuth, upload.single('file'), async (req, res) =>
   }
 
   res.status(400).json({ error: 'Unsupported target format.' });
+});
+
+app.get('/api/history', requireAuth, async (req, res) => {
+  const jobs = await UserDB.listConversionJobs(req.user.id);
+  return res.json({ jobs });
 });
 
 app.listen(PORT, '127.0.0.1', () => {
