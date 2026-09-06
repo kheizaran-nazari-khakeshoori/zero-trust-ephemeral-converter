@@ -34,6 +34,20 @@ db.serialize(() => {
   `);
   db.run('CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions (userId)');
   db.run('CREATE INDEX IF NOT EXISTS idx_sessions_expires_at ON sessions (expiresAt)');
+  db.run(`
+    CREATE TABLE IF NOT EXISTS conversion_jobs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      userId INTEGER NOT NULL,
+      originalFilename TEXT NOT NULL,
+      sourceType TEXT NOT NULL,
+      targetType TEXT NOT NULL,
+      status TEXT NOT NULL,
+      createdAt INTEGER NOT NULL,
+      FOREIGN KEY (userId) REFERENCES users (id) ON DELETE CASCADE
+    )
+  `);
+  db.run('CREATE INDEX IF NOT EXISTS idx_conversion_jobs_user_id ON conversion_jobs (userId)');
+  db.run('CREATE INDEX IF NOT EXISTS idx_conversion_jobs_created_at ON conversion_jobs (createdAt)');
 });
 
 export const UserDB = {
@@ -99,6 +113,35 @@ export const UserDB = {
         (err, row) => {
           if (err) reject(err);
           else resolve(row);
+        }
+      );
+    });
+  },
+
+  createConversionJob: (userId, originalFilename, sourceType, targetType, status) => {
+    return new Promise((resolve, reject) => {
+      db.run(
+        `INSERT INTO conversion_jobs
+          (userId, originalFilename, sourceType, targetType, status, createdAt)
+          VALUES (?, ?, ?, ?, ?, ?)`,
+        [userId, originalFilename, sourceType, targetType, status, Date.now()],
+        function (err) {
+          if (err) reject(err);
+          else resolve(this.lastID);
+        }
+      );
+    });
+  },
+
+  listConversionJobs: (userId, limit = 20) => {
+    return new Promise((resolve, reject) => {
+      db.all(
+        `SELECT id, originalFilename, sourceType, targetType, status, createdAt
+         FROM conversion_jobs WHERE userId = ? ORDER BY createdAt DESC LIMIT ?`,
+        [userId, limit],
+        (err, rows) => {
+          if (err) reject(err);
+          else resolve(rows);
         }
       );
     });
