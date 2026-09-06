@@ -117,6 +117,15 @@
 
     <button type="button" id="uploadBtn">Upload & Convert</button>
     <div class="status-msg" id="status"></div>
+
+    <section class="history-panel" aria-labelledby="historyTitle">
+      <div class="history-heading">
+        <h3 id="historyTitle">Recent conversions</h3>
+        <button type="button" id="refreshHistoryBtn" class="secondary-button">Refresh</button>
+      </div>
+      <p id="historyStatus" class="history-status">Sign in to view your history.</p>
+      <ul id="historyList" class="history-list"></ul>
+    </section>
   </div>
 
   <script src="app.js"></script>
