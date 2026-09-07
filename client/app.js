@@ -264,6 +264,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       statusMsg.innerText = 'File converted and downloaded successfully!';
       statusMsg.style.color = '#4ade80';
+      loadHistory();
     } catch (err) {
       statusMsg.innerText = 'Failed to connect to converter server.';
       statusMsg.style.color = '#f87171';
