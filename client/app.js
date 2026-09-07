@@ -19,6 +19,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const fileLabel = document.getElementById('fileLabel');
   const uploadBtn = document.getElementById('uploadBtn');
   const statusMsg = document.getElementById('status');
+  const historyList = document.getElementById('historyList');
+  const historyStatus = document.getElementById('historyStatus');
+  const refreshHistoryBtn = document.getElementById('refreshHistoryBtn');
 
   let tempAuthToken = '';
   let accessToken = sessionStorage.getItem('accessToken') || '';
@@ -51,6 +54,36 @@ document.addEventListener('DOMContentLoaded', () => {
       request.addEventListener('error', reject);
       request.send(formData);
     });
+  }
+
+  async function loadHistory() {
+    if (!accessToken) return;
+
+    historyStatus.innerText = 'Loading history...';
+    try {
+      const response = await fetch('http://127.0.0.1:5000/api/history', {
+        headers: { Authorization: `Bearer ${accessToken}` }
+      });
+      if (!response.ok) throw new Error('History request failed');
+
+      const { jobs } = await response.json();
+      historyList.replaceChildren();
+      historyStatus.innerText = jobs.length ? '' : 'No conversions yet.';
+      for (const job of jobs) {
+        const item = document.createElement('li');
+        item.className = 'history-item';
+        const file = document.createElement('span');
+        file.className = 'history-file';
+        file.innerText = job.originalFilename;
+        const meta = document.createElement('span');
+        meta.className = 'history-meta';
+        meta.innerText = `${job.sourceType} to ${job.targetType} | ${new Date(job.createdAt).toLocaleString()}`;
+        item.append(file, meta);
+        historyList.append(item);
+      }
+    } catch (error) {
+      historyStatus.innerText = 'Could not load conversion history.';
+    }
   }
 
   // 1. REGISTER USER
@@ -207,6 +240,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
           const errorData = JSON.parse(await res.response.text());
           errorMessage = errorData.error || errorMessage;
+        loadHistory();
         } catch (error) {
           errorMessage = 'The server returned an unreadable error.';
         }
@@ -238,4 +272,7 @@ document.addEventListener('DOMContentLoaded', () => {
       uploadBtn.innerText = 'Upload & Convert';
     }
   });
+
+  refreshHistoryBtn.addEventListener('click', loadHistory);
+  loadHistory();
 });
