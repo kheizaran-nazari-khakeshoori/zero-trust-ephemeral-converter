@@ -1,6 +1,53 @@
-# SecureConvert 🔒
+# SecureConvert
 
-> A Zero-Knowledge, Ephemeral File Conversion Platform built for Web Programming & Security.
+SecureConvert is a small Express application for authenticated, in-memory file conversion.
+
+## Requirements
+
+- Node.js 18 or newer
+- Python 3 for serving the plain HTML client
+
+## Run locally
+
+From the repository root, install the server dependencies:
+
+```bash
+cd server
+npm install
+cp .env.example .env.local
+npm start
+```
+
+In a second terminal, serve the client:
+
+```bash
+cd client
+python3 -m http.server 5500
+```
+
+Open http://127.0.0.1:5500 in a browser. Register an account, add the displayed secret to an authenticator app, then complete the two login steps.
+
+## Test
+
+```bash
+cd server
+npm test
+```
+
+The test suite covers conversion functions, file signatures, and security edge cases.
+
+## Configuration
+
+Copy `server/.env.example` to `server/.env.local` and set a long random `JWT_SECRET`. The server reads `PORT` and `HOST` from the environment as well.
+
+## Supported conversions
+
+- Text or Markdown to HTML
+- Text or Markdown to PDF
+- JSON records to CSV
+- PNG images to WebP
+
+Uploaded files are processed from memory and are not written to disk by the converter.
 
 ## 🌟 Features
 
