@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "start": "node server.js",
-    "test": "node --test"
+    "test": "NODE_ENV=test node --test",
+    "lint": "eslint ."
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
@@ -19,5 +20,8 @@
     "sharp": "^0.35.4",
     "speakeasy": "^2.0.0",
     "sqlite3": "^6.0.1"
+  },
+  "devDependencies": {
+    "eslint": "^10.9.1"
   }
 }
