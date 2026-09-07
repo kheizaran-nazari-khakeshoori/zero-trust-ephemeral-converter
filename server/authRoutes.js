@@ -4,9 +4,9 @@ import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import { UserDB } from './userDb.js';
+import { JWT_SECRET } from './config.js';
 
 const router = express.Router();
-const jwtSecret = process.env.JWT_SECRET || 'development-only-change-this-secret';
 
 router.post('/register', async (req, res) => {
   const { email, password } = req.body;
@@ -91,7 +91,7 @@ router.post('/login-step2', async (req, res) => {
   const sessionId = crypto.randomUUID();
   const accessToken = jwt.sign(
     { userId: user.id },
-    jwtSecret,
+    JWT_SECRET,
     { expiresIn: '1h', jwtid: sessionId }
   );
   const decodedToken = jwt.decode(accessToken);

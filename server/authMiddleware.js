@@ -1,7 +1,6 @@
 import jwt from 'jsonwebtoken';
 import { UserDB } from './userDb.js';
-
-const jwtSecret = process.env.JWT_SECRET || 'development-only-change-this-secret';
+import { JWT_SECRET } from './config.js';
 
 export async function requireAuth(req, res, next) {
   const authorization = req.get('Authorization');
@@ -12,7 +11,7 @@ export async function requireAuth(req, res, next) {
   }
 
   try {
-    const payload = jwt.verify(token, jwtSecret);
+    const payload = jwt.verify(token, JWT_SECRET);
     const session = await UserDB.findSession(payload.jti, token);
 
     if (!session || session.userId !== payload.userId) {

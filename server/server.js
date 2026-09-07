@@ -13,6 +13,7 @@ import {
 import authRoutes from './authRoutes.js';
 import { requireAuth } from './authMiddleware.js';
 import { UserDB } from './userDb.js';
+import { HOST, PORT } from './config.js';
 import {
   ALLOWED_TARGET_FORMATS,
   MAX_UPLOAD_SIZE,
@@ -20,7 +21,6 @@ import {
 } from './inputValidation.js';
 
 const app = express();
-const PORT = process.env.PORT || 5000;
 
 // 1. Security Headers (CSP, HSTS, X-Frame-Options)
 app.use(helmet());
@@ -152,6 +152,10 @@ app.get('/api/history', requireAuth, async (req, res) => {
   return res.json({ jobs });
 });
 
-app.listen(PORT, '127.0.0.1', () => {
-  console.log(`🔒 SecureConvert Server running on http://127.0.0.1:${PORT}`);
-});
+if (process.env.NODE_ENV !== 'test') {
+  app.listen(PORT, HOST, () => {
+    console.log(`🔒 SecureConvert Server running on http://${HOST}:${PORT}`);
+  });
+}
+
+export default app;
