@@ -152,6 +152,16 @@ app.get('/api/history', requireAuth, async (req, res) => {
   return res.json({ jobs });
 });
 
+app.use((error, req, res, next) => {
+  if (error.code === 'LIMIT_FILE_SIZE') {
+    return res.status(413).json({ error: 'The file is too large. The maximum size is 10 MB.' });
+  }
+  if (error.message === 'Invalid file name.') {
+    return res.status(400).json({ error: 'The uploaded file name is not allowed.' });
+  }
+  return next(error);
+});
+
 if (process.env.NODE_ENV !== 'test') {
   app.listen(PORT, HOST, () => {
     console.log(`🔒 SecureConvert Server running on http://${HOST}:${PORT}`);
