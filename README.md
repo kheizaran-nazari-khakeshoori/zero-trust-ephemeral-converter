@@ -14,7 +14,7 @@ From the repository root, install the server dependencies:
 ```bash
 cd server
 npm install
-cp .env.example .env.local
+export JWT_SECRET="replace-this-with-a-long-random-secret"
 npm start
 ```
 
@@ -38,7 +38,7 @@ The test suite covers conversion functions, file signatures, and security edge c
 
 ## Configuration
 
-Copy `server/.env.example` to `server/.env.local` and set a long random `JWT_SECRET`. The server reads `PORT` and `HOST` from the environment as well.
+Use `server/.env.example` as a reference, then export `JWT_SECRET`, `PORT`, and `HOST` in your shell before starting the server. The application reads these values from the process environment.
 
 ## Supported conversions
 
