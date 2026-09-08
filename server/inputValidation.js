@@ -14,7 +14,6 @@ export function validateOriginalFilename(filename) {
   // Must not be only dots/spaces and should contain at least one alphanumeric
   if (!/[a-zA-Z0-9]/.test(filename)) return false;
   // No control characters
-  // eslint-disable-next-line no-control-regex
   if (/[\x00-\x1F\x7F]/.test(filename)) return false;
   return true;
 }

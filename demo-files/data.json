@@ -1,0 +1,5 @@
+[
+  { "name": "Ada Lovelace", "role": "admin", "active": true },
+  { "name": "Lin Clark", "role": "editor", "active": false },
+  { "name": "Grace Hopper", "role": "viewer", "active": true }
+]

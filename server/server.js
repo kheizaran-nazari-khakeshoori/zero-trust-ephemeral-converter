@@ -175,7 +175,7 @@ app.use('/api', (req, res) => {
   res.status(404).json({ error: 'Not found.' });
 });
 
-app.use((error, req, res, next) => {
+app.use((error, req, res, _next) => {
   if (error.code === 'LIMIT_FILE_SIZE') {
     return res.status(413).json({ error: `The file is too large. The maximum size is ${Math.round(MAX_UPLOAD_SIZE / (1024 * 1024))} MB.` });
   }
