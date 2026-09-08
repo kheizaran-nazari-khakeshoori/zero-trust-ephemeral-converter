@@ -2,5 +2,10 @@
 .gitignore
 server/node_modules
 server/database.sqlite
+server/*.db
+server/*.sqlite
 text.md
-README.md
+node_modules
+npm-debug.log
+.coverage
+.git

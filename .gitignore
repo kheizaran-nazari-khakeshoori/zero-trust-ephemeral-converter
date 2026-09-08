@@ -1,20 +1,37 @@
-```text
 # Environment Variables
 .env
 .env.local
+.env.*.local
 
 # Dependencies
 node_modules/
 venv/
 __pycache__/
+*.pyc
 
 # Database / Storage Artifacts
 *.db
 *.sqlite
+*.sqlite-journal
 uploads/
 temp/
+server/database.sqlite
+
+# Logs
+logs/
+npm-debug.log*
+*.log
 
 # System / OS
 .DS_Store
 Thumbs.db
+coverage/
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Task notes (local only)
 text.md
