@@ -79,8 +79,10 @@ export async function convertPngToWebp(imageBuffer) {
   if (!Buffer.isBuffer(imageBuffer) || imageBuffer.length === 0) return null;
 
   try {
-    return await sharp(imageBuffer).webp({ quality: 85 }).toBuffer();
-  } catch (error) {
+    return await sharp(imageBuffer, { failOnError: true, limitInputPixels: 25_000_000 })
+      .webp({ quality: 85 })
+      .toBuffer();
+  } catch {
     return null;
   }
 }
@@ -88,17 +90,21 @@ export async function convertPngToWebp(imageBuffer) {
 // Simple JSON to CSV converter in RAM
 export function convertJsonToCsv(jsonBuffer) {
   try {
-    const data = JSON.parse(jsonBuffer.toString('utf-8'));
+    const text = Buffer.isBuffer(jsonBuffer) ? jsonBuffer.toString('utf-8') : String(jsonBuffer);
+    // Guard against huge payloads — already limited to 10MB upload but be explicit
+    if (text.length > 2_000_000) return null;
+    const data = JSON.parse(text);
     if (!Array.isArray(data) || data.length === 0) return null;
+    if (data.length > 10_000) return null;
     if (!data.every(row => row && typeof row === 'object' && !Array.isArray(row))) return null;
 
     const headers = [...new Set(data.flatMap(row => Object.keys(row)))];
-    if (headers.length === 0) return null;
+    if (headers.length === 0 || headers.length > 100) return null;
 
     const escapeCsv = value => {
       if (value === null || value === undefined) return '';
-      const text = typeof value === 'object' ? JSON.stringify(value) : String(value);
-      return `"${text.replace(/"/g, '""')}"`;
+      const str = typeof value === 'object' ? JSON.stringify(value) : String(value);
+      return `"${str.replace(/"/g, '""')}"`;
     };
 
     const csvRows = [headers.map(escapeCsv).join(',')];
@@ -109,7 +115,7 @@ export function convertJsonToCsv(jsonBuffer) {
     }
 
     return csvRows.join('\n');
-  } catch (err) {
+  } catch {
     return null;
   }
 }

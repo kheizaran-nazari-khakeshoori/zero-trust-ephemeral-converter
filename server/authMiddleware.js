@@ -12,15 +12,18 @@ export async function requireAuth(req, res, next) {
 
   try {
     const payload = jwt.verify(token, JWT_SECRET);
+    if (!payload.jti || !payload.userId) {
+      return res.status(401).json({ error: 'Session is invalid or expired.' });
+    }
     const session = await UserDB.findSession(payload.jti, token);
 
     if (!session || session.userId !== payload.userId) {
       return res.status(401).json({ error: 'Session is invalid or expired.' });
     }
 
-    req.user = { id: session.userId };
+    req.user = { id: session.userId, sessionId: payload.jti };
     return next();
-  } catch (error) {
+  } catch {
     return res.status(401).json({ error: 'Session is invalid or expired.' });
   }
 }

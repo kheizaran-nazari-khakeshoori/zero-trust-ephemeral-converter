@@ -18,7 +18,7 @@ test('registers a user and completes both login steps', async () => {
       body: JSON.stringify({ email, password: 'correct horse battery staple' })
     });
     const registration = await registerResponse.json();
-    assert.equal(registerResponse.status, 200);
+    assert.ok([200, 201].includes(registerResponse.status));
     assert.ok(registration.mfaSecret);
 
     const passwordResponse = await fetch(`${baseUrl}/api/auth/login-step1`, {

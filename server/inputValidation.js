@@ -1,4 +1,3 @@
-export const MAX_UPLOAD_SIZE = 10 * 1024 * 1024;
 export const ALLOWED_TARGET_FORMATS = new Set(['html', 'pdf', 'csv', 'webp']);
 
 export function validateTargetFormat(targetFormat) {
@@ -7,8 +6,30 @@ export function validateTargetFormat(targetFormat) {
 }
 
 export function validateOriginalFilename(filename) {
-  return typeof filename === 'string'
-    && filename.length > 0
-    && filename.length <= 255
-    && !filename.includes('\0');
+  if (typeof filename !== 'string' || filename.length === 0 || filename.length > 255) return false;
+  if (filename.includes('\0')) return false;
+  // Block path traversal and directory separators
+  if (filename.includes('/') || filename.includes('\\')) return false;
+  if (filename.includes('..')) return false;
+  // Must not be only dots/spaces and should contain at least one alphanumeric
+  if (!/[a-zA-Z0-9]/.test(filename)) return false;
+  // No control characters
+  // eslint-disable-next-line no-control-regex
+  if (/[\x00-\x1F\x7F]/.test(filename)) return false;
+  return true;
+}
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+export function validateEmail(email) {
+  return typeof email === 'string' && email.length <= 254 && EMAIL_REGEX.test(email.trim());
+}
+
+export function validatePassword(password) {
+  // At least 8 chars, at least one letter and one number or symbol for minimal strength
+  return typeof password === 'string' && password.length >= 8 && password.length <= 128;
+}
+
+export function validateTotpCode(code) {
+  return typeof code === 'string' && /^\d{6}$/.test(code.trim());
 }

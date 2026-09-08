@@ -82,87 +82,87 @@ const upload = multer({
 
 // File Conversion Endpoint with Magic Byte Inspection
 app.post('/api/convert', requireAuth, upload.single('file'), async (req, res) => {
-  if (!req.file) {
-    return res.status(400).json({ error: 'No file uploaded.' });
-  }
-
-  const detectedType = validateMagicBytes(req.file.buffer);
-  const targetFormat = typeof req.body.targetFormat === 'string'
-    ? req.body.targetFormat.trim().toLowerCase()
-    : '';
-
-  if (!ALLOWED_TARGET_FORMATS.has(targetFormat)) {
-    return res.status(400).json({ error: 'Choose a supported target format: html, pdf, csv, or webp.' });
-  }
-
-  if (!detectedType) {
-    return res.status(400).json({ 
-      error: 'The file type could not be verified. Upload a valid text, JSON, or PNG file.'
-    });
-  }
-
-  if (targetFormat === 'webp' && detectedType !== 'png') {
-    return res.status(400).json({ error: 'WebP conversion requires a PNG image.' });
-  }
-  if (['html', 'pdf'].includes(targetFormat) && !['txt', 'json'].includes(detectedType)) {
-    return res.status(400).json({ error: 'HTML and PDF conversion requires a text or Markdown file.' });
-  }
-  if (targetFormat === 'csv' && detectedType !== 'json') {
-    return res.status(400).json({ error: 'CSV conversion requires a valid JSON file.' });
-  }
-
-  await UserDB.createConversionJob(
-    req.user.id,
-    req.file.originalname,
-    detectedType,
-    targetFormat,
-    'completed'
-  );
-
-  console.log(`Processing ${req.file.originalname} (${detectedType}) -> ${targetFormat}`);
-
-  const rawContent = req.file.buffer.toString('utf-8');
-
-  // Convert Markdown/Text to HTML
-  if (targetFormat === 'html') {
-    const convertedHtml = convertMarkdownToHtml(rawContent);
-    res.setHeader('Content-Type', 'text/html');
-    res.setHeader('Content-Disposition', `attachment; filename="converted_${Date.now()}.html"`);
-    return res.send(convertedHtml);
-  }
-
-  if (targetFormat === 'pdf') {
-    const convertedPdf = await convertMarkdownToPdf(rawContent);
-    if (!convertedPdf) {
-      return res.status(400).json({ error: 'The text file does not contain convertible content.' });
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded.' });
     }
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="converted_${Date.now()}.pdf"`);
-    return res.send(convertedPdf);
-  }
 
-  if (targetFormat === 'webp') {
-    const convertedWebp = await convertPngToWebp(req.file.buffer);
-    if (!convertedWebp) {
-      return res.status(400).json({ error: 'The PNG image could not be converted to WebP.' });
+    const detectedType = validateMagicBytes(req.file.buffer);
+    const targetFormat = typeof req.body.targetFormat === 'string'
+      ? req.body.targetFormat.trim().toLowerCase()
+      : '';
+
+    if (!ALLOWED_TARGET_FORMATS.has(targetFormat)) {
+      return res.status(400).json({ error: 'Choose a supported target format: html, pdf, csv, or webp.' });
     }
-    res.setHeader('Content-Type', 'image/webp');
-    res.setHeader('Content-Disposition', `attachment; filename="converted_${Date.now()}.webp"`);
-    return res.send(convertedWebp);
-  }
 
-  // Convert JSON to CSV
-  if (targetFormat === 'csv') {
-    const convertedCsv = convertJsonToCsv(req.file.buffer);
-    if (!convertedCsv) {
-      return res.status(400).json({ error: 'Invalid JSON array structure for CSV conversion.' });
+    if (!detectedType) {
+      return res.status(400).json({
+        error: 'The file type could not be verified. Upload a valid text, JSON, or PNG file.'
+      });
     }
-    res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', `attachment; filename="converted_${Date.now()}.csv"`);
-    return res.send(convertedCsv);
-  }
 
-  res.status(400).json({ error: 'Unsupported target format.' });
+    if (targetFormat === 'webp' && detectedType !== 'png') {
+      return res.status(400).json({ error: 'WebP conversion requires a PNG image.' });
+    }
+    if (['html', 'pdf'].includes(targetFormat) && !['txt', 'json'].includes(detectedType)) {
+      return res.status(400).json({ error: 'HTML and PDF conversion requires a text or Markdown file.' });
+    }
+    if (targetFormat === 'csv' && detectedType !== 'json') {
+      return res.status(400).json({ error: 'CSV conversion requires a valid JSON file.' });
+    }
+
+    const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip || 'unknown';
+    console.log(`Processing ${req.file.originalname} (${detectedType}) -> ${targetFormat} for user ${req.user.id}`);
+
+    let resultBuffer = null;
+    let contentType = '';
+    let fileExt = targetFormat;
+
+    if (targetFormat === 'html') {
+      const rawContent = req.file.buffer.toString('utf-8');
+      const convertedHtml = convertMarkdownToHtml(rawContent);
+      if (!convertedHtml) return res.status(400).json({ error: 'The text file does not contain convertible content.' });
+      resultBuffer = Buffer.from(convertedHtml, 'utf-8');
+      contentType = 'text/html';
+    } else if (targetFormat === 'pdf') {
+      const rawContent = req.file.buffer.toString('utf-8');
+      const convertedPdf = await convertMarkdownToPdf(rawContent);
+      if (!convertedPdf) return res.status(400).json({ error: 'The text file does not contain convertible content.' });
+      resultBuffer = convertedPdf;
+      contentType = 'application/pdf';
+    } else if (targetFormat === 'webp') {
+      const convertedWebp = await convertPngToWebp(req.file.buffer);
+      if (!convertedWebp) return res.status(400).json({ error: 'The PNG image could not be converted to WebP.' });
+      resultBuffer = convertedWebp;
+      contentType = 'image/webp';
+    } else if (targetFormat === 'csv') {
+      const convertedCsv = convertJsonToCsv(req.file.buffer);
+      if (!convertedCsv) return res.status(400).json({ error: 'Invalid JSON array structure for CSV conversion.' });
+      resultBuffer = Buffer.from(convertedCsv, 'utf-8');
+      contentType = 'text/csv';
+    } else {
+      return res.status(400).json({ error: 'Unsupported target format.' });
+    }
+
+    // Only record successful conversions
+    await UserDB.createConversionJob(
+      req.user.id,
+      req.file.originalname,
+      detectedType,
+      targetFormat,
+      'completed'
+    );
+    await UserDB.createAuditLog(req.user.id, `convert_${detectedType}_to_${targetFormat}`, ip);
+
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('Content-Disposition', `attachment; filename="converted_${Date.now()}.${fileExt}"`);
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    return res.send(resultBuffer);
+  } catch (error) {
+    console.error('[convert]', error);
+    return res.status(500).json({ error: 'Conversion failed. Please try again.' });
+  }
 });
 
 app.get('/api/history', requireAuth, async (req, res) => {
