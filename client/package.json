@@ -1,0 +1,15 @@
+{
+  "name": "secure-convert-client",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Static client for SecureConvert — serve with auto-open",
+  "scripts": {
+    "dev": "serve . -l 5500 -o",
+    "start": "python3 -m http.server 5500",
+    "start:open": "node ./dev-open.js"
+  },
+  "dependencies": {
+    "serve": "^14.2.5"
+  }
+}

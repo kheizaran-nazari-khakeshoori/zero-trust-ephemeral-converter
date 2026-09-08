@@ -26,14 +26,18 @@ npm start
 # or: JWT_SECRET=... npm start
 ```
 
-In a second terminal, serve the client:
+In a second terminal, serve the client (auto-opens browser):
 
 ```bash
 cd client
-python3 -m http.server 5500
+npm install   # first time only
+npm run dev   # serves on http://127.0.0.1:5500 and opens browser
+# alternative without Node:
+# python3 -m http.server 5500
+# then manually open http://127.0.0.1:5500
 ```
 
-Open http://127.0.0.1:5500 in a browser. Register an account, add the displayed secret to an authenticator app, then complete the two login steps. Health check: http://127.0.0.1:5000/api/health
+Register an account, add the displayed secret to an authenticator app, then complete the two login steps. Health check: http://127.0.0.1:5000/api/health
 
 ## Test & Lint
 
