@@ -1,0 +1,6 @@
+.git
+.gitignore
+server/node_modules
+server/database.sqlite
+text.md
+README.md
