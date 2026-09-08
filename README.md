@@ -6,7 +6,6 @@ SecureConvert is a small Express application for authenticated, in-memory file c
 
 - Node.js 18 or newer (22 recommended)
 - Python 3 for serving the plain HTML client (or any static server)
-- Docker (optional, for containerized runs)
 
 ## Run locally
 
@@ -60,17 +59,6 @@ All runtime knobs live in `server/config.js` and are read from the environment (
 | `MAX_UPLOAD_SIZE` | 10485760 | Multer limit in bytes |
 
 See `server/.env.example` for a complete template.
-
-## Docker
-
-```bash
-docker build -t secure-convert .
-docker run -p 5000:5000 --env-file server/.env.local secure-convert
-# or
-docker compose up --build
-```
-
-Container runs as non-root `appuser`, exposes `5000`, and has a `HEALTHCHECK` against `/api/health`.
 
 ## Supported conversions
 
