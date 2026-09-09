@@ -254,7 +254,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (data.otpauthUrl) mfaSecretKey.title = data.otpauthUrl;
         // Remember email for second window
         localStorage.setItem('tempEmail', email.trim().toLowerCase());
-        setAuthStatus('Registered! Save the key in your authenticator app. Now open a second window and do Step 1 login — or stay here and continue.', false);
+        setAuthStatus('Registered! Save the key in your authenticator app. Opening second window for verification…', false);
+        // Auto-open second window for Step 1/Step 2 (allowed because it is inside click handler)
+        const w = window.open(location.href, '_blank');
+        if (!w) setAuthStatus('Registered! Save the key. Popup blocked — please manually open a second window/tab to ' + location.href, false);
       } else {
         setAuthStatus(data.error || 'Registration failed.');
       }
@@ -285,8 +288,18 @@ document.addEventListener('DOMContentLoaded', () => {
         step1Box.style.display = 'none';
         mfaDisplay.style.display = 'none';
         step2Box.style.display = 'block';
-        setAuthStatus('Password accepted! Enter your 6-digit code here — or in your other window. Both will sync.', false);
+        setAuthStatus('Password accepted! Enter your 6-digit code here — second window also opened and synced.', false);
         totpCode.focus();
+        // Ensure second window exists for TOTP step — if user only has one window, open it now
+        // Only auto-open if no second window already has the token (first login)
+        if (!sessionStorage.getItem('secondWindowOpened')) {
+          sessionStorage.setItem('secondWindowOpened', '1');
+          const w2 = window.open(location.href, '_blank');
+          if (w2) {
+            // Focus the new window for TOTP entry
+            try { w2.focus(); } catch {}
+          }
+        }
       } else {
         setAuthStatus(data.error || 'Invalid credentials.');
       }
