@@ -5,9 +5,10 @@
   "type": "module",
   "description": "Static client for SecureConvert — serve with auto-open",
   "scripts": {
-    "dev": "serve . -l 5500 -o",
+    "dev": "node ./dev-serve.js",
+    "dev:python": "node ./dev-open.js",
     "start": "python3 -m http.server 5500",
-    "start:open": "node ./dev-open.js"
+    "serve": "serve . -l 5500"
   },
   "dependencies": {
     "serve": "^14.2.5"
