@@ -181,8 +181,15 @@
 
   <!-- SecureConvert Dashboard Card -->
   <div class="card" id="dashboardCard">
-    <h2 style="margin-top: 0;">🔒 SecureConvert</h2>
-    <p style="font-size: 0.85rem; color: #94a3b8;">Ephemeral, In-Memory File Processing</p>
+    <div id="dashboardHeader">
+      <h2 style="margin: 0;">🔒 SecureConvert</h2>
+      <p style="font-size: 0.85rem; color: #94a3b8; margin: 0.3rem 0 0;">Ephemeral, In-Memory File Processing</p>
+      <div id="userGreeting" style="display:none; margin-top: 1rem; padding: 0.75rem; background:#0f172a; border-radius:8px; text-align:left;">
+        <div style="font-size:0.85rem; color:#94a3b8;">Signed in as</div>
+        <strong id="userEmail" style="color:#38bdf8; word-break:break-all;"></strong>
+        <div id="welcomeMsg" style="font-size:0.85rem; color:#4ade80; margin-top:0.3rem;"></div>
+      </div>
+    </div>
 
     <div class="drop-zone" id="dropZone">
       <p id="fileLabel" style="margin: 0; pointer-events: none;">Drag & drop a file here or click to select</p>
