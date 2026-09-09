@@ -29,6 +29,13 @@ document.addEventListener('DOMContentLoaded', () => {
   const userEmailEl = document.getElementById('userEmail');
   const welcomeMsg = document.getElementById('welcomeMsg');
 
+  const registerModal = document.getElementById('registerModal');
+  const modalEmail = document.getElementById('modalEmail');
+  const modalPassword = document.getElementById('modalPassword');
+  const modalRegBtn = document.getElementById('modalRegBtn');
+  const modalClose = document.getElementById('modalClose');
+  const modalStatus = document.getElementById('modalStatus');
+
   const API_BASE = (() => {
     const meta = document.querySelector('meta[name="api-base"]');
     if (meta && meta.content) return meta.content.replace(/\/$/, '');
@@ -49,6 +56,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Keep sessionStorage in sync for legacy
   if (accessToken) sessionStorage.setItem('accessToken', accessToken);
+
+  function openRegisterModal() {
+    if (registerModal) {
+      registerModal.classList.add('open');
+      registerModal.setAttribute('aria-hidden', 'false');
+      modalEmail.focus();
+    }
+  }
+  function closeRegisterModal() {
+    if (registerModal) {
+      registerModal.classList.remove('open');
+      registerModal.setAttribute('aria-hidden', 'true');
+    }
+  }
+  function setModalStatus(msg, isError = true) {
+    if (!modalStatus) return;
+    modalStatus.innerText = msg;
+    modalStatus.style.color = isError ? '#f87171' : '#4ade80';
+  }
 
   function setAuthStatus(msg, isError = true) {
     authStatus.innerText = msg;
@@ -233,47 +259,70 @@ document.addEventListener('DOMContentLoaded', () => {
   if (tempEmail) authEmail.value = tempEmail;
   if (currentUserEmail && !authEmail.value) authEmail.value = currentUserEmail;
 
-  // 1. REGISTER USER — can be done in Browser A, then continue in Browser B
-  regBtn.addEventListener('click', async (e) => {
+  // 0. Registration popup (first window) — appears before Step 1
+  // Main Register button now just opens the popup (so registration is visibly a popup window)
+  regBtn.addEventListener('click', (e) => {
     e.preventDefault();
-    const email = authEmail.value.trim();
-    const password = authPassword.value.trim();
-    if (!email || !password) return setAuthStatus('Please enter an email and password.');
-    if (password.length < 8) return setAuthStatus('Password must be at least 8 characters.');
-    regBtn.disabled = true;
-    try {
-      const res = await fetch(`${API_BASE}/api/auth/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
-      });
-      const data = await res.json().catch(() => ({}));
-      if (res.ok) {
-        mfaDisplay.style.display = 'block';
-        mfaSecretKey.innerText = data.mfaSecret;
-        if (data.otpauthUrl) mfaSecretKey.title = data.otpauthUrl;
-        // Remember email for second window
-        localStorage.setItem('tempEmail', email.trim().toLowerCase());
-        setAuthStatus('Registered! Save the key in your authenticator app. Opening second window for verification…', false);
-        // Auto-open second window for Step 1/Step 2 (allowed because it is inside click handler)
-        const w = window.open(location.href, '_blank');
-        if (!w) setAuthStatus('Registered! Save the key. Popup blocked — please manually open a second window/tab to ' + location.href, false);
-      } else {
-        setAuthStatus(data.error || 'Registration failed.');
-      }
-    } catch {
-      setAuthStatus(`Cannot connect to ${API_BASE}`);
-    } finally {
-      regBtn.disabled = false;
+    // Sync main inputs into modal for convenience
+    modalEmail.value = authEmail.value.trim();
+    modalPassword.value = authPassword.value.trim();
+    openRegisterModal();
+  });
+  if (modalClose) modalClose.addEventListener('click', closeRegisterModal);
+  if (registerModal) registerModal.addEventListener('click', (e) => { if (e.target === registerModal) closeRegisterModal(); });
+
+  async function doRegister(email, password) {
+    const res = await fetch(`${API_BASE}/api/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok) {
+      mfaDisplay.style.display = 'block';
+      mfaSecretKey.innerText = data.mfaSecret;
+      if (data.otpauthUrl) mfaSecretKey.title = data.otpauthUrl;
+      localStorage.setItem('tempEmail', email.trim().toLowerCase());
+      // Mirror into main form so Step 1 can be done immediately after closing popup
+      authEmail.value = email;
+      authPassword.value = password;
+      modalPassword.value = '';
+      setModalStatus('Registered! Save the key. Now close this popup and press the blue Step 1 button.', false);
+      setAuthStatus('Registered! Now click Step 1 (blue) to open the 2-step code window.', false);
+      setTimeout(closeRegisterModal, 1200);
+      return true;
     }
+    const msg = data.error || 'Registration failed.';
+    setModalStatus(msg, true);
+    setAuthStatus(msg, true);
+    return false;
+  }
+
+  if (modalRegBtn) modalRegBtn.addEventListener('click', async (e) => {
+    e.preventDefault();
+    const email = modalEmail.value.trim();
+    const password = modalPassword.value.trim();
+    if (!email || !password) return setModalStatus('Please enter an email and password.');
+    if (password.length < 8) return setModalStatus('Password must be at least 8 characters.');
+    modalRegBtn.disabled = true;
+    try { await doRegister(email, password); } catch { setModalStatus(`Cannot connect to ${API_BASE}`); }
+    finally { modalRegBtn.disabled = false; }
   });
 
-  // 2. STEP 1: PASSWORD LOGIN — sets tempToken shared via localStorage for other window
+  // 2. STEP 1: PASSWORD LOGIN — BLUE button must pop the other window with 2-step code
   login1Btn.addEventListener('click', async (e) => {
     e.preventDefault();
+    // Open second window SYNCHRONOUSLY (still inside user gesture) to avoid popup blocker
+    const secondWindow = window.open('about:blank', '_blank');
+    if (secondWindow) {
+      try { secondWindow.document.write('<p style=\"font-family:system-ui;padding:2rem\">Opening verification…</p>'); } catch {}
+    }
     const email = authEmail.value.trim();
     const password = authPassword.value.trim();
-    if (!email || !password) return setAuthStatus('Please enter email and password.');
+    if (!email || !password) {
+      if (secondWindow) secondWindow.close();
+      return setAuthStatus('Please enter email and password.');
+    }
     login1Btn.disabled = true;
     try {
       const res = await fetch(`${API_BASE}/api/auth/login-step1`, {
@@ -288,22 +337,23 @@ document.addEventListener('DOMContentLoaded', () => {
         step1Box.style.display = 'none';
         mfaDisplay.style.display = 'none';
         step2Box.style.display = 'block';
-        setAuthStatus('Password accepted! Enter your 6-digit code here — second window also opened and synced.', false);
+        setAuthStatus('Password accepted! The other window now shows the 2-step code input.', false);
         totpCode.focus();
-        // Ensure second window exists for TOTP step — if user only has one window, open it now
-        // Only auto-open if no second window already has the token (first login)
-        if (!sessionStorage.getItem('secondWindowOpened')) {
-          sessionStorage.setItem('secondWindowOpened', '1');
+        // Navigate the already-opened window to the app (it will sync via localStorage and show Step 2)
+        if (secondWindow && !secondWindow.closed) {
+          secondWindow.location.href = location.href;
+          try { secondWindow.focus(); } catch {}
+        } else if (secondWindow) {
+          try { secondWindow.close(); } catch {}
           const w2 = window.open(location.href, '_blank');
-          if (w2) {
-            // Focus the new window for TOTP entry
-            try { w2.focus(); } catch {}
-          }
+          if (!w2) setAuthStatus('Popup blocked — please manually open a second tab to ' + location.href, true);
         }
       } else {
+        if (secondWindow && !secondWindow.closed) try { secondWindow.close(); } catch {}
         setAuthStatus(data.error || 'Invalid credentials.');
       }
     } catch {
+      if (secondWindow && !secondWindow.closed) try { secondWindow.close(); } catch {}
       setAuthStatus(`Cannot connect to ${API_BASE}`);
     } finally {
       login1Btn.disabled = false;
@@ -463,4 +513,14 @@ document.addEventListener('DOMContentLoaded', () => {
   refreshHistoryBtn.addEventListener('click', loadHistory);
   // Initial UI — handles all three cases: verified, step2-pending from other window, or fresh
   updateAuthUI();
+  // First registration must be a popup window (as requested)
+  if (!accessToken && !tempAuthToken) {
+    // Delay slightly so page renders first
+    setTimeout(() => {
+      if (!localStorage.getItem('hasSeenRegisterPopup')) {
+        openRegisterModal();
+        localStorage.setItem('hasSeenRegisterPopup', '1');
+      }
+    }, 500);
+  }
 });
