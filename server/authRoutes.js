@@ -7,7 +7,6 @@ import rateLimit from 'express-rate-limit';
 import { UserDB } from './userDb.js';
 import { JWT_SECRET, AUTH_RATE_LIMIT_MAX, RATE_LIMIT_WINDOW_MS } from './config.js';
 import { validateEmail, validatePassword, validateTotpCode } from './inputValidation.js';
-import { requireAuth } from './authMiddleware.js';
 
 const router = express.Router();
 
@@ -154,30 +153,6 @@ router.post('/login-step2', async (req, res) => {
   } catch (error) {
     console.error('[login-step2]', error);
     return res.status(500).json({ error: 'Verification failed. Please try again.' });
-  }
-});
-
-// Current user profile + history — used by dashboard after cross-window login
-router.get('/me', requireAuth, async (req, res) => {
-  try {
-    const user = await UserDB.findById(req.user.id);
-    if (!user) return res.status(404).json({ error: 'User not found.' });
-    const jobs = await UserDB.listConversionJobs(req.user.id);
-    return res.json({ email: user.email, id: user.id, jobs });
-  } catch (error) {
-    console.error('[me]', error);
-    return res.status(500).json({ error: 'Failed to load profile.' });
-  }
-});
-
-router.post('/logout', requireAuth, async (req, res) => {
-  try {
-    await UserDB.deleteSession(req.user.sessionId);
-    await UserDB.createAuditLog(req.user.id, 'logout', getClientIp(req));
-    return res.json({ message: 'Signed out.' });
-  } catch (error) {
-    console.error('[logout]', error);
-    return res.status(500).json({ error: 'Logout failed.' });
   }
 });
 

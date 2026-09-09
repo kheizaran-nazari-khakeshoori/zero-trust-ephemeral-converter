@@ -128,26 +128,6 @@
       flex-shrink: 0;
       font-size: 0.75rem;
     }
-    .modal-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.65);
-      display: none;
-      justify-content: center;
-      align-items: center;
-      z-index: 999;
-      padding: 1rem;
-    }
-    .modal-overlay.open { display: flex; }
-    .modal-card {
-      background: #1e293b;
-      padding: 1.5rem;
-      border-radius: 12px;
-      width: 100%;
-      max-width: 420px;
-      box-shadow: 0 20px 50px rgba(0,0,0,0.6);
-      text-align: center;
-    }
     @media (max-width: 520px) {
       body {
         padding: 1rem 0.5rem;
@@ -167,19 +147,6 @@
   </style>
 </head>
 <body>
-
-  <!-- Registration Popup (first window) -->
-  <div id="registerModal" class="modal-overlay" aria-hidden="true">
-    <div class="modal-card">
-      <h2 style="margin-top:0;">👋 Create account</h2>
-      <p style="font-size:0.85rem; color:#94a3b8;">First-time? Register here — popup window</p>
-      <input type="email" id="modalEmail" placeholder="Email Address" autocomplete="email">
-      <input type="password" id="modalPassword" placeholder="Password (min 8 chars)" autocomplete="new-password">
-      <button type="button" id="modalRegBtn">Register</button>
-      <div class="status-msg" id="modalStatus"></div>
-      <button type="button" id="modalClose" class="secondary-button" style="margin-top:0.75rem; width:100%;">Already have an account? Sign in</button>
-    </div>
-  </div>
 
   <!-- 3-Step Authentication Card -->
   <div class="card" id="authCard">
@@ -214,15 +181,8 @@
 
   <!-- SecureConvert Dashboard Card -->
   <div class="card" id="dashboardCard">
-    <div id="dashboardHeader">
-      <h2 style="margin: 0;">🔒 SecureConvert</h2>
-      <p style="font-size: 0.85rem; color: #94a3b8; margin: 0.3rem 0 0;">Ephemeral, In-Memory File Processing</p>
-      <div id="userGreeting" style="display:none; margin-top: 1rem; padding: 0.75rem; background:#0f172a; border-radius:8px; text-align:left;">
-        <div style="font-size:0.85rem; color:#94a3b8;">Signed in as</div>
-        <strong id="userEmail" style="color:#38bdf8; word-break:break-all;"></strong>
-        <div id="welcomeMsg" style="font-size:0.85rem; color:#4ade80; margin-top:0.3rem;"></div>
-      </div>
-    </div>
+    <h2 style="margin-top: 0;">🔒 SecureConvert</h2>
+    <p style="font-size: 0.85rem; color: #94a3b8;">Ephemeral, In-Memory File Processing</p>
 
     <div class="drop-zone" id="dropZone">
       <p id="fileLabel" style="margin: 0; pointer-events: none;">Drag & drop a file here or click to select</p>

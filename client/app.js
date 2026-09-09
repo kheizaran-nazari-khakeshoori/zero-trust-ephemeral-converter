@@ -4,7 +4,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const login2Btn = document.getElementById('login2Btn');
   const logoutBtn = document.getElementById('logoutBtn');
 
-  const authCard = document.getElementById('authCard');
   const authEmail = document.getElementById('authEmail');
   const authPassword = document.getElementById('authPassword');
   const authStatus = document.getElementById('authStatus');
@@ -25,183 +24,47 @@ document.addEventListener('DOMContentLoaded', () => {
   const historyStatus = document.getElementById('historyStatus');
   const refreshHistoryBtn = document.getElementById('refreshHistoryBtn');
 
-  const userGreeting = document.getElementById('userGreeting');
-  const userEmailEl = document.getElementById('userEmail');
-  const welcomeMsg = document.getElementById('welcomeMsg');
-
-  const registerModal = document.getElementById('registerModal');
-  const modalEmail = document.getElementById('modalEmail');
-  const modalPassword = document.getElementById('modalPassword');
-  const modalRegBtn = document.getElementById('modalRegBtn');
-  const modalClose = document.getElementById('modalClose');
-  const modalStatus = document.getElementById('modalStatus');
-
+  // Allow overriding API via <meta name="api-base" content="..."> or localStorage
   const API_BASE = (() => {
     const meta = document.querySelector('meta[name="api-base"]');
     if (meta && meta.content) return meta.content.replace(/\/$/, '');
     const stored = localStorage.getItem('apiBase');
     if (stored) return stored.replace(/\/$/, '');
+    // Default: same host, port 5000 when served from :5500, otherwise relative
     if (location.hostname === '127.0.0.1' || location.hostname === 'localhost') {
       if (location.port === '5500') return 'http://127.0.0.1:5000';
     }
     return location.origin.replace(/\/$/, '');
   })();
 
-  // Cross-window shared state: use localStorage so second window/tab sees the same login
-  let tempAuthToken = localStorage.getItem('tempToken') || '';
-  let tempEmail = localStorage.getItem('tempEmail') || '';
-  let accessToken = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken') || '';
-  let currentUserEmail = localStorage.getItem('userEmail') || '';
+  let tempAuthToken = '';
+  let accessToken = sessionStorage.getItem('accessToken') || '';
   let selectedFile = null;
-
-  // Keep sessionStorage in sync for legacy
-  if (accessToken) sessionStorage.setItem('accessToken', accessToken);
-
-  function openRegisterModal() {
-    if (registerModal) {
-      registerModal.classList.add('open');
-      registerModal.setAttribute('aria-hidden', 'false');
-      modalEmail.focus();
-    }
-  }
-  function closeRegisterModal() {
-    if (registerModal) {
-      registerModal.classList.remove('open');
-      registerModal.setAttribute('aria-hidden', 'true');
-    }
-  }
-  function setModalStatus(msg, isError = true) {
-    if (!modalStatus) return;
-    modalStatus.innerText = msg;
-    modalStatus.style.color = isError ? '#f87171' : '#4ade80';
-  }
 
   function setAuthStatus(msg, isError = true) {
     authStatus.innerText = msg;
     authStatus.style.color = isError ? '#f87171' : '#4ade80';
   }
 
-  function persistAccessToken(token, email) {
-    accessToken = token;
-    currentUserEmail = email || currentUserEmail;
-    localStorage.setItem('accessToken', token);
-    sessionStorage.setItem('accessToken', token);
-    if (email) localStorage.setItem('userEmail', email);
-    // clear temp state once verified
-    localStorage.removeItem('tempToken');
-    localStorage.removeItem('tempEmail');
-    tempAuthToken = '';
-    tempEmail = '';
-  }
-
-  function persistTempToken(token, email) {
-    tempAuthToken = token;
-    tempEmail = email;
-    localStorage.setItem('tempToken', token);
-    localStorage.setItem('tempEmail', email);
+  function updateAuthUI() {
+    const loggedIn = Boolean(accessToken);
+    if (logoutBtn) logoutBtn.style.display = loggedIn ? 'inline-block' : 'none';
+    if (loggedIn) {
+      historyStatus.innerText = '';
+    } else {
+      historyStatus.innerText = 'Sign in to view your history.';
+      historyList.replaceChildren();
+    }
   }
 
   function clearAuth() {
     accessToken = '';
     tempAuthToken = '';
-    tempEmail = '';
-    currentUserEmail = '';
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('userEmail');
-    localStorage.removeItem('tempToken');
-    localStorage.removeItem('tempEmail');
     sessionStorage.removeItem('accessToken');
-    if (userGreeting) userGreeting.style.display = 'none';
-    if (authCard) authCard.style.display = 'block';
     step1Box.style.display = 'block';
     step2Box.style.display = 'none';
     mfaDisplay.style.display = 'none';
-    historyList.replaceChildren();
-    historyStatus.innerText = 'Sign in to view your history.';
-    if (logoutBtn) logoutBtn.style.display = 'none';
-  }
-
-  async function fetchProfile() {
-    if (!accessToken) return null;
-    try {
-      const res = await fetch(`${API_BASE}/api/auth/me`, {
-        headers: { Authorization: `Bearer ${accessToken}` }
-      });
-      if (res.status === 401) {
-        clearAuth();
-        setAuthStatus('Session expired. Please log in again.');
-        return null;
-      }
-      if (!res.ok) return null;
-      const data = await res.json();
-      currentUserEmail = data.email;
-      localStorage.setItem('userEmail', data.email);
-      return data;
-    } catch {
-      return null;
-    }
-  }
-
-  async function updateAuthUI() {
-    const loggedIn = Boolean(accessToken);
-    if (logoutBtn) logoutBtn.style.display = loggedIn ? 'inline-block' : 'none';
-
-    if (loggedIn) {
-      // Show personalized dashboard
-      const profile = await fetchProfile();
-      if (profile) {
-        if (userEmailEl) userEmailEl.innerText = profile.email;
-        if (welcomeMsg) welcomeMsg.innerText = `Welcome back! You have ${profile.jobs.length} file(s) converted before.`;
-        if (userGreeting) userGreeting.style.display = 'block';
-        // Hide step boxes, keep auth card minimal but show signed-in state
-        step1Box.style.display = 'none';
-        step2Box.style.display = 'none';
-        mfaDisplay.style.display = 'none';
-        setAuthStatus(`Verified as ${profile.email}. You are now on your dashboard.`, false);
-      }
-      // Render history from profile to avoid extra call
-      if (profile && profile.jobs) {
-        renderHistory(profile.jobs);
-      } else {
-        loadHistory();
-      }
-    } else {
-      if (userGreeting) userGreeting.style.display = 'none';
-      // If we have a temp token from another window, show Step 2 directly
-      if (tempAuthToken && tempEmail) {
-        authEmail.value = tempEmail;
-        step1Box.style.display = 'none';
-        step2Box.style.display = 'block';
-        setAuthStatus('Password verified in another window. Enter your 6-digit code here.', false);
-        totpCode.focus();
-      } else {
-        step1Box.style.display = 'block';
-        step2Box.style.display = 'none';
-        historyStatus.innerText = 'Sign in to view your history.';
-        historyList.replaceChildren();
-      }
-    }
-  }
-
-  function renderHistory(jobs) {
-    historyList.replaceChildren();
-    if (!jobs || jobs.length === 0) {
-      historyStatus.innerText = 'No conversions yet.';
-      return;
-    }
-    historyStatus.innerText = '';
-    for (const job of jobs) {
-      const item = document.createElement('li');
-      item.className = 'history-item';
-      const file = document.createElement('span');
-      file.className = 'history-file';
-      file.innerText = job.originalFilename;
-      const meta = document.createElement('span');
-      meta.className = 'history-meta';
-      meta.innerText = `${job.sourceType} → ${job.targetType} · ${new Date(job.createdAt).toLocaleString()}`;
-      item.append(file, meta);
-      historyList.append(item);
-    }
+    updateAuthUI();
   }
 
   function uploadForConversion(formData, onProgress) {
@@ -225,6 +88,7 @@ document.addEventListener('DOMContentLoaded', () => {
       historyStatus.innerText = 'Sign in to view your history.';
       return;
     }
+
     historyStatus.innerText = 'Loading history...';
     try {
       const response = await fetch(`${API_BASE}/api/history`, {
@@ -237,92 +101,74 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
       if (!response.ok) throw new Error('History request failed');
+
       const { jobs } = await response.json();
-      renderHistory(jobs);
+      historyList.replaceChildren();
+      if (!jobs || jobs.length === 0) {
+        historyStatus.innerText = 'No conversions yet.';
+        return;
+      }
+      historyStatus.innerText = '';
+      for (const job of jobs) {
+        const item = document.createElement('li');
+        item.className = 'history-item';
+        const file = document.createElement('span');
+        file.className = 'history-file';
+        file.innerText = job.originalFilename;
+        const meta = document.createElement('span');
+        meta.className = 'history-meta';
+        meta.innerText = `${job.sourceType} → ${job.targetType} · ${new Date(job.createdAt).toLocaleString()}`;
+        item.append(file, meta);
+        historyList.append(item);
+      }
     } catch {
       historyStatus.innerText = 'Could not load conversion history.';
     }
   }
 
-  // Listen for cross-window storage changes (register in one tab, verify in another)
-  window.addEventListener('storage', (e) => {
-    if (e.key === 'accessToken' || e.key === 'tempToken') {
-      tempAuthToken = localStorage.getItem('tempToken') || '';
-      tempEmail = localStorage.getItem('tempEmail') || '';
-      accessToken = localStorage.getItem('accessToken') || '';
-      if (accessToken) sessionStorage.setItem('accessToken', accessToken);
-      updateAuthUI();
-    }
-  });
-
-  // Prefill email from previous window
-  if (tempEmail) authEmail.value = tempEmail;
-  if (currentUserEmail && !authEmail.value) authEmail.value = currentUserEmail;
-
-  // 0. Registration popup (first window) — appears before Step 1
-  // Main Register button now just opens the popup (so registration is visibly a popup window)
-  regBtn.addEventListener('click', (e) => {
+  // 1. REGISTER USER
+  regBtn.addEventListener('click', async (e) => {
     e.preventDefault();
-    // Sync main inputs into modal for convenience
-    modalEmail.value = authEmail.value.trim();
-    modalPassword.value = authPassword.value.trim();
-    openRegisterModal();
-  });
-  if (modalClose) modalClose.addEventListener('click', closeRegisterModal);
-  if (registerModal) registerModal.addEventListener('click', (e) => { if (e.target === registerModal) closeRegisterModal(); });
-
-  async function doRegister(email, password) {
-    const res = await fetch(`${API_BASE}/api/auth/register`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password })
-    });
-    const data = await res.json().catch(() => ({}));
-    if (res.ok) {
-      mfaDisplay.style.display = 'block';
-      mfaSecretKey.innerText = data.mfaSecret;
-      if (data.otpauthUrl) mfaSecretKey.title = data.otpauthUrl;
-      localStorage.setItem('tempEmail', email.trim().toLowerCase());
-      // Mirror into main form so Step 1 can be done immediately after closing popup
-      authEmail.value = email;
-      authPassword.value = password;
-      modalPassword.value = '';
-      setModalStatus('Registered! Save the key. Now close this popup and press the blue Step 1 button.', false);
-      setAuthStatus('Registered! Now click Step 1 (blue) to open the 2-step code window.', false);
-      setTimeout(closeRegisterModal, 1200);
-      return true;
-    }
-    const msg = data.error || 'Registration failed.';
-    setModalStatus(msg, true);
-    setAuthStatus(msg, true);
-    return false;
-  }
-
-  if (modalRegBtn) modalRegBtn.addEventListener('click', async (e) => {
-    e.preventDefault();
-    const email = modalEmail.value.trim();
-    const password = modalPassword.value.trim();
-    if (!email || !password) return setModalStatus('Please enter an email and password.');
-    if (password.length < 8) return setModalStatus('Password must be at least 8 characters.');
-    modalRegBtn.disabled = true;
-    try { await doRegister(email, password); } catch { setModalStatus(`Cannot connect to ${API_BASE}`); }
-    finally { modalRegBtn.disabled = false; }
-  });
-
-  // 2. STEP 1: PASSWORD LOGIN — BLUE button must pop the other window with 2-step code
-  login1Btn.addEventListener('click', async (e) => {
-    e.preventDefault();
-    // Open second window SYNCHRONOUSLY (still inside user gesture) to avoid popup blocker
-    const secondWindow = window.open('about:blank', '_blank');
-    if (secondWindow) {
-      try { secondWindow.document.write('<p style=\"font-family:system-ui;padding:2rem\">Opening verification…</p>'); } catch {}
-    }
     const email = authEmail.value.trim();
     const password = authPassword.value.trim();
-    if (!email || !password) {
-      if (secondWindow) secondWindow.close();
-      return setAuthStatus('Please enter email and password.');
+
+    if (!email || !password) return setAuthStatus('Please enter an email and password.');
+    if (password.length < 8) return setAuthStatus('Password must be at least 8 characters.');
+
+    regBtn.disabled = true;
+    try {
+      const res = await fetch(`${API_BASE}/api/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      const data = await res.json().catch(() => ({}));
+
+      if (res.ok) {
+        mfaDisplay.style.display = 'block';
+        mfaSecretKey.innerText = data.mfaSecret;
+        if (data.otpauthUrl) {
+          mfaSecretKey.title = data.otpauthUrl;
+        }
+        setAuthStatus('Registered! Save the key in your authenticator app, then do Step 1 login.', false);
+      } else {
+        setAuthStatus(data.error || 'Registration failed.');
+      }
+    } catch {
+      setAuthStatus(`Cannot connect to ${API_BASE}`);
+    } finally {
+      regBtn.disabled = false;
     }
+  });
+
+  // 2. STEP 1: PASSWORD LOGIN
+  login1Btn.addEventListener('click', async (e) => {
+    e.preventDefault();
+    const email = authEmail.value.trim();
+    const password = authPassword.value.trim();
+
+    if (!email || !password) return setAuthStatus('Please enter email and password.');
+
     login1Btn.disabled = true;
     try {
       const res = await fetch(`${API_BASE}/api/auth/login-step1`, {
@@ -331,60 +177,49 @@ document.addEventListener('DOMContentLoaded', () => {
         body: JSON.stringify({ email, password })
       });
       const data = await res.json().catch(() => ({}));
+
       if (res.ok) {
-        persistTempToken(data.tempToken, email.trim().toLowerCase());
-        authEmail.value = email;
+        tempAuthToken = data.tempToken;
         step1Box.style.display = 'none';
         mfaDisplay.style.display = 'none';
         step2Box.style.display = 'block';
-        setAuthStatus('Password accepted! The other window now shows the 2-step code input.', false);
+        setAuthStatus('Password accepted! Enter your 6-digit code.', false);
         totpCode.focus();
-        // Navigate the already-opened window to the app (it will sync via localStorage and show Step 2)
-        if (secondWindow && !secondWindow.closed) {
-          secondWindow.location.href = location.href;
-          try { secondWindow.focus(); } catch {}
-        } else if (secondWindow) {
-          try { secondWindow.close(); } catch {}
-          const w2 = window.open(location.href, '_blank');
-          if (!w2) setAuthStatus('Popup blocked — please manually open a second tab to ' + location.href, true);
-        }
       } else {
-        if (secondWindow && !secondWindow.closed) try { secondWindow.close(); } catch {}
         setAuthStatus(data.error || 'Invalid credentials.');
       }
     } catch {
-      if (secondWindow && !secondWindow.closed) try { secondWindow.close(); } catch {}
       setAuthStatus(`Cannot connect to ${API_BASE}`);
     } finally {
       login1Btn.disabled = false;
     }
   });
 
-  // 3. STEP 2: TOTP CODE VERIFICATION — works from whichever window you use
+  // 3. STEP 2: TOTP CODE VERIFICATION
   login2Btn.addEventListener('click', async (e) => {
     e.preventDefault();
     const code = totpCode.value.trim();
-    const email = (authEmail.value.trim() || tempEmail || currentUserEmail).trim();
+    const email = authEmail.value.trim();
+
     if (!code || code.length !== 6) return setAuthStatus('Enter a 6-digit code.');
     if (!/^\d{6}$/.test(code)) return setAuthStatus('Code must be 6 digits.');
-    // Use temp token from this window or from the other window via localStorage
-    const tokenToUse = tempAuthToken || localStorage.getItem('tempToken') || '';
-    if (!tokenToUse) return setAuthStatus('No login session found. Please do Step 1 again.');
-    if (!email) return setAuthStatus('Email is required for verification.');
 
     login2Btn.disabled = true;
     try {
       const res = await fetch(`${API_BASE}/api/auth/login-step2`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, tempToken: tokenToUse, totpCode: code })
+        body: JSON.stringify({ email, tempToken: tempAuthToken, totpCode: code })
       });
       const data = await res.json().catch(() => ({}));
+
       if (res.ok) {
-        persistAccessToken(data.accessToken, email.toLowerCase());
-        setAuthStatus('Authentication complete! Loading your dashboard...', false);
+        accessToken = data.accessToken;
+        sessionStorage.setItem('accessToken', accessToken);
+        setAuthStatus('Authentication complete! You can now convert files.', false);
         step2Box.style.display = 'none';
-        await updateAuthUI();
+        updateAuthUI();
+        loadHistory();
       } else {
         setAuthStatus(data.error || 'Invalid TOTP code.');
       }
@@ -396,15 +231,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   if (logoutBtn) {
-    logoutBtn.addEventListener('click', async () => {
-      try {
-        if (accessToken) {
-          await fetch(`${API_BASE}/api/auth/logout`, {
-            method: 'POST',
-            headers: { Authorization: `Bearer ${accessToken}` }
-          });
-        }
-      } catch {}
+    logoutBtn.addEventListener('click', () => {
       clearAuth();
       setAuthStatus('Signed out. Please log in again.', false);
     });
@@ -412,6 +239,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 4. DRAG & DROP FILE SELECTION
   dropZone.addEventListener('click', () => fileInput.click());
+
   ['dragenter', 'dragover'].forEach(name => {
     dropZone.addEventListener(name, (e) => {
       e.preventDefault();
@@ -419,6 +247,7 @@ document.addEventListener('DOMContentLoaded', () => {
       dropZone.classList.add('dragover');
     });
   });
+
   ['dragleave', 'drop'].forEach(name => {
     dropZone.addEventListener(name, (e) => {
       e.preventDefault();
@@ -426,6 +255,7 @@ document.addEventListener('DOMContentLoaded', () => {
       dropZone.classList.remove('dragover');
     });
   });
+
   dropZone.addEventListener('drop', (e) => {
     const files = e.dataTransfer.files;
     if (files.length > 0) {
@@ -434,6 +264,7 @@ document.addEventListener('DOMContentLoaded', () => {
       statusMsg.innerText = '';
     }
   });
+
   fileInput.addEventListener('change', (e) => {
     if (e.target.files.length > 0) {
       selectedFile = e.target.files[0];
@@ -445,31 +276,38 @@ document.addEventListener('DOMContentLoaded', () => {
   // 5. UPLOAD & CONVERT FILE
   uploadBtn.addEventListener('click', async (e) => {
     e.preventDefault();
+
     if (!selectedFile) {
       statusMsg.innerText = 'Please select or drag a file first.';
       statusMsg.style.color = '#f87171';
       return;
     }
+
     if (!accessToken) {
       statusMsg.innerText = 'Please complete authentication first.';
       statusMsg.style.color = '#f87171';
       return;
     }
+
     const formData = new FormData();
     formData.append('file', selectedFile);
     formData.append('targetFormat', document.getElementById('formatSelect').value);
+
     statusMsg.innerText = 'Preparing upload...';
     statusMsg.style.color = '#38bdf8';
     uploadBtn.disabled = true;
     const originalLabel = uploadBtn.innerText;
     uploadBtn.innerText = 'Converting...';
+
     try {
       const res = await uploadForConversion(formData, progress => {
         statusMsg.innerText = `Uploading… ${progress}%`;
       });
+
       if (res.status !== 200) {
         let errorMessage = 'Conversion failed.';
         try {
+          // res.response is a Blob when responseType is blob — need to read as text
           const text = await res.response.text();
           const errorData = JSON.parse(text);
           errorMessage = errorData.error || errorMessage;
@@ -484,6 +322,7 @@ document.addEventListener('DOMContentLoaded', () => {
         statusMsg.style.color = '#f87171';
         return;
       }
+
       const blob = res.response;
       const ext = document.getElementById('formatSelect').value;
       const downloadUrl = window.URL.createObjectURL(blob);
@@ -494,13 +333,10 @@ document.addEventListener('DOMContentLoaded', () => {
       a.click();
       a.remove();
       window.URL.revokeObjectURL(downloadUrl);
+
       statusMsg.innerText = 'File converted and downloaded successfully!';
       statusMsg.style.color = '#4ade80';
       loadHistory();
-      // Also refresh greeting count
-      fetchProfile().then(p => {
-        if (p && welcomeMsg) welcomeMsg.innerText = `Welcome back! You have ${p.jobs.length} file(s) converted before.`;
-      });
     } catch {
       statusMsg.innerText = `Failed to connect to ${API_BASE}. Is the server running?`;
       statusMsg.style.color = '#f87171';
@@ -511,16 +347,11 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   refreshHistoryBtn.addEventListener('click', loadHistory);
-  // Initial UI — handles all three cases: verified, step2-pending from other window, or fresh
   updateAuthUI();
-  // First registration must be a popup window (as requested)
-  if (!accessToken && !tempAuthToken) {
-    // Delay slightly so page renders first
-    setTimeout(() => {
-      if (!localStorage.getItem('hasSeenRegisterPopup')) {
-        openRegisterModal();
-        localStorage.setItem('hasSeenRegisterPopup', '1');
-      }
-    }, 500);
+  if (accessToken) {
+    // Validate session on load — hide converter if invalid
+    loadHistory().then(() => {
+      if (!accessToken) clearAuth();
+    });
   }
 });
