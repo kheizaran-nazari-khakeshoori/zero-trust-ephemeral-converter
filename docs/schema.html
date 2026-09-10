@@ -3,28 +3,33 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SecureConvert — DB Schema GUI</title>
+<title>SecureConvert — DB Schema (Printable)</title>
 <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
 <style>
- body{font-family:system-ui,sans-serif;background:#0f172a;color:#e2e8f0;padding:2rem}
- .card{background:#1e293b;padding:2rem;border-radius:12px;max-width:900px;margin:auto}
- pre.mermaid{background:#0b1220;padding:1rem;border-radius:8px}
- table{border-collapse:collapse;width:100%;margin:1rem 0}
- th,td{border:1px solid #334155;padding:.5rem;text-align:left}
- th{background:#334155}
- .btn{display:inline-block;background:#2563eb;color:white;padding:.6rem 1rem;border-radius:6px;text-decoration:none;margin:.5rem .5rem 0 0}
+ @media print { .no-print{display:none} body{padding:0} }
+ body{font-family:'Segoe UI',system-ui,sans-serif;background:#f8fafc;color:#0f172a;padding:2rem;line-height:1.5}
+ .page{max-width:950px;margin:auto;background:white;padding:2.2rem;border-radius:10px;box-shadow:0 6px 24px rgba(0,0,0,.08)}
+ h1{margin:0 0 .2rem;font-size:1.6rem;color:#0f172a}
+ .sub{color:#475569;font-size:.9rem;margin-bottom:1.2rem}
+ pre.mermaid{background:#f8fafc;border:1px solid #e2e8f0;padding:1.2rem;border-radius:8px;display:flex;justify-content:center}
+ table{border-collapse:collapse;width:100%;margin:1rem 0;font-size:.9rem}
+ th,td{border:1px solid #cbd5e1;padding:.55rem;text-align:left}
+ th{background:#f1f5f9;color:#334155}
+ td{color:#334155}
+ .btn{display:inline-block;background:#2563eb;color:white;padding:.5rem .9rem;border-radius:6px;text-decoration:none;margin:.4rem .4rem 0 0;font-size:.85rem}
+ .note{background:#f1f5f9;border-left:4px solid #2563eb;padding:.8rem;border-radius:4px;margin:1rem 0;font-size:.85rem;color:#334155}
 </style>
 </head>
 <body>
-<div class="card">
-<h1>SecureConvert — Database Schema (GUI)</h1>
-<p>From <code>server/userDb.js</code> + <code>docs/db-schema.md</code> — open with <code>xdg-open docs/schema.html</code></p>
+<div class="page">
+<h1>SecureConvert — Database Schema</h1>
+<div class="sub">Zero-Trust Ephemeral Converter &bull; SQLite &bull; <code>server/userDb.js</code> &bull; FK + WAL + Migrations</div>
 
 <pre class="mermaid">
 erDiagram
-    users ||--o{ sessions : "has many"
-    users ||--o{ conversion_jobs : "has many"
-    users ||--o{ audit_logs : "has many"
+    users ||--o{ sessions : "1 ── ∞"
+    users ||--o{ conversion_jobs : "1 ── ∞"
+    users ||--o{ audit_logs : "1 ── ∞"
 
     users {
         INTEGER id PK
@@ -59,19 +64,28 @@ erDiagram
     }
 </pre>
 
-<h2>Tables</h2>
+<div class="note">
+<strong>Relations:</strong> <code>users 1 — ∞ sessions</code> (ON DELETE CASCADE), <code>1 — ∞ conversion_jobs</code> (CASCADE), <code>1 — ∞ audit_logs</code> (SET NULL keeps audit after user delete). Foreign keys enforced via <code>PRAGMA foreign_keys=ON</code>, WAL mode.
+</div>
+
+<h2 style="font-size:1.05rem;margin:1.2rem 0 .4rem">Indexes & Constraints</h2>
 <table>
-<tr><th>Table</th><th>Key</th><th>Why indexed</th></tr>
-<tr><td>users(email)</td><td>UNIQUE</td><td>login lookup</td></tr>
-<tr><td>sessions(tokenHash, expiresAt)</td><td>UNIQUE+INDEX</td><td>auth + cleanup</td></tr>
-<tr><td>conversion_jobs(userId, createdAt)</td><td>INDEX</td><td>history ORDER BY</td></tr>
-<tr><td>audit_logs(userId, action)</td><td>INDEX</td><td>security search</td></tr>
+<tr><th>Table / Column</th><th>Constraint</th><th>Purpose</th></tr>
+<tr><td>users.email</td><td>UNIQUE + INDEX idx_users_email</td><td>Prevent duplicate accounts, fast login WHERE email=?</td></tr>
+<tr><td>sessions.tokenHash</td><td>UNIQUE</td><td>DB never stores raw JWT (SHA256)</td></tr>
+<tr><td>sessions.expiresAt</td><td>INDEX idx_sessions_expires_at</td><td>Fast cleanup WHERE expiresAt &lt; now</td></tr>
+<tr><td>conversion_jobs(userId, createdAt)</td><td>INDEX</td><td>History ORDER BY createdAt DESC LIMIT</td></tr>
+<tr><td>audit_logs(userId, action)</td><td>INDEX</td><td>Security search & stats</td></tr>
 </table>
 
-<a class="btn" href="db-schema.md">Open db-schema.md</a>
-<a class="btn" href="https://mermaid.live/edit" target="_blank">Edit on mermaid.live</a>
-<p style="color:#94a3b8;font-size:.85rem;margin-top:1rem">GUI options: <code>sudo dnf install sqlitebrowser && sqlitebrowser ../server/database.sqlite</code> or VS Code → SQLite extension.</p>
+<div class="no-print" style="margin-top:1rem">
+<a class="btn" href="#" onclick="window.print();return false">Print / Save PDF</a>
+<a class="btn" href="db-schema.md" style="background:#475569">Open db-schema.md</a>
+<a class="btn" href="https://mermaid.live/edit" target="_blank" style="background:#0ea5e9">Edit on Mermaid Live</a>
 </div>
-<script>mermaid.initialize({startOnLoad:true, theme:'dark'})</script>
+
+<p style="color:#64748b;font-size:.8rem;margin-top:1rem">Tip: In browser press <code>Ctrl+P</code> → Save as PDF (light theme is print-ready). For interactive DB: <code>sudo dnf install sqlitebrowser && sqlitebrowser ../server/database.sqlite</code></p>
+</div>
+<script>mermaid.initialize({startOnLoad:true, theme:'base', themeVariables:{primaryColor:'#ffffff',primaryBorderColor:'#2563eb',lineColor:'#475569',tertiaryColor:'#f1f5f9'}})</script>
 </body>
 </html>
