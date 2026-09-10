@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "start": "node server.js",
+    "seed": "node seed.js",
+    "db:inspect": "node -e \"import('./userDb.js').then(async m=>{await new Promise(r=>setTimeout(r,600));m.UserDB._db.all(\\\"SELECT name,sql FROM sqlite_master WHERE type='table'\\\",(e,r)=>console.log(r))})\"",
     "test": "NODE_ENV=test node --test",
     "lint": "eslint ."
   },
