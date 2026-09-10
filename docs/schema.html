@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SecureConvert — DB Schema GUI</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+ body{font-family:system-ui,sans-serif;background:#0f172a;color:#e2e8f0;padding:2rem}
+ .card{background:#1e293b;padding:2rem;border-radius:12px;max-width:900px;margin:auto}
+ pre.mermaid{background:#0b1220;padding:1rem;border-radius:8px}
+ table{border-collapse:collapse;width:100%;margin:1rem 0}
+ th,td{border:1px solid #334155;padding:.5rem;text-align:left}
+ th{background:#334155}
+ .btn{display:inline-block;background:#2563eb;color:white;padding:.6rem 1rem;border-radius:6px;text-decoration:none;margin:.5rem .5rem 0 0}
+</style>
+</head>
+<body>
+<div class="card">
+<h1>SecureConvert — Database Schema (GUI)</h1>
+<p>From <code>server/userDb.js</code> + <code>docs/db-schema.md</code> — open with <code>xdg-open docs/schema.html</code></p>
+
+<pre class="mermaid">
+erDiagram
+    users ||--o{ sessions : "has many"
+    users ||--o{ conversion_jobs : "has many"
+    users ||--o{ audit_logs : "has many"
+
+    users {
+        INTEGER id PK
+        TEXT email UK
+        TEXT passwordHash
+        TEXT mfaSecret
+        INTEGER mfaEnabled
+        TEXT step3Token
+    }
+    sessions {
+        TEXT id PK
+        INTEGER userId FK
+        TEXT tokenHash UK
+        INTEGER expiresAt
+        INTEGER createdAt
+    }
+    conversion_jobs {
+        INTEGER id PK
+        INTEGER userId FK
+        TEXT originalFilename
+        TEXT sourceType
+        TEXT targetType
+        TEXT status
+        INTEGER createdAt
+    }
+    audit_logs {
+        INTEGER id PK
+        INTEGER userId FK
+        TEXT action
+        TEXT ipAddress
+        INTEGER createdAt
+    }
+</pre>
+
+<h2>Tables</h2>
+<table>
+<tr><th>Table</th><th>Key</th><th>Why indexed</th></tr>
+<tr><td>users(email)</td><td>UNIQUE</td><td>login lookup</td></tr>
+<tr><td>sessions(tokenHash, expiresAt)</td><td>UNIQUE+INDEX</td><td>auth + cleanup</td></tr>
+<tr><td>conversion_jobs(userId, createdAt)</td><td>INDEX</td><td>history ORDER BY</td></tr>
+<tr><td>audit_logs(userId, action)</td><td>INDEX</td><td>security search</td></tr>
+</table>
+
+<a class="btn" href="db-schema.md">Open db-schema.md</a>
+<a class="btn" href="https://mermaid.live/edit" target="_blank">Edit on mermaid.live</a>
+<p style="color:#94a3b8;font-size:.85rem;margin-top:1rem">GUI options: <code>sudo dnf install sqlitebrowser && sqlitebrowser ../server/database.sqlite</code> or VS Code → SQLite extension.</p>
+</div>
+<script>mermaid.initialize({startOnLoad:true, theme:'dark'})</script>
+</body>
+</html>
