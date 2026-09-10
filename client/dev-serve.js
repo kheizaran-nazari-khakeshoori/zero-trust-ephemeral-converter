@@ -28,3 +28,5 @@ setTimeout(() => {
 process.on('SIGINT', () => server.kill('SIGINT'));
 process.on('SIGTERM', () => server.kill('SIGTERM'));
 server.on('close', (code) => process.exit(code ?? 0));
+
+//starts the server and opens the browser to the specified URL after a short delay. It also handles process termination signals to cleanly shut down the server.

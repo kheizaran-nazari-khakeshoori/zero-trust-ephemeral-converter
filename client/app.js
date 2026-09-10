@@ -355,3 +355,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 });
+
+
+//handles user registration, login with TOTP, file selection via drag-and-drop or file input, and uploading files for conversion. It also manages authentication state and displays conversion history.
