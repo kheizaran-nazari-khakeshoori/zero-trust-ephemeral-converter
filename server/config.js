@@ -38,3 +38,9 @@ export const RATE_LIMIT_MAX = Number.parseInt(process.env.RATE_LIMIT_MAX || '100
 export const AUTH_RATE_LIMIT_MAX = Number.parseInt(process.env.AUTH_RATE_LIMIT_MAX || '20', 10);
 
 export const MAX_UPLOAD_SIZE = Number.parseInt(process.env.MAX_UPLOAD_SIZE || String(10 * 1024 * 1024), 10);
+
+
+
+
+
+// Configuration for the file upload and validation

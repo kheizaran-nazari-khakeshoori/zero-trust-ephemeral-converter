@@ -27,3 +27,5 @@ export async function requireAuth(req, res, next) {
     return res.status(401).json({ error: 'Session is invalid or expired.' });
   }
 }
+
+// This middleware function checks for a valid JWT in the Authorization header and verifies the session against the database. If valid, it attaches the user information to the request object; otherwise, it responds with a 401 Unauthorized error.

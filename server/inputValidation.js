@@ -32,3 +32,8 @@ export function validatePassword(password) {
 export function validateTotpCode(code) {
   return typeof code === 'string' && /^\d{6}$/.test(code.trim());
 }
+
+
+// This function checks if the file type is allowed for conversion
+
+//i need both inputvalidation and also filevalidator to prevent the attacker to be able to send valid file name with malicious bytes or valid bytes with malicious filename 

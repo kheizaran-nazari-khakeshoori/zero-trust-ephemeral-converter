@@ -96,3 +96,4 @@ test('rejects unsupported output formats clearly', async () => {
   }
 });
 
+// Additional tests can be added here to cover more edge cases, such as invalid file types, oversized files, and other input validation scenarios.

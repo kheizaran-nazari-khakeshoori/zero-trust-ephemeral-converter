@@ -27,3 +27,5 @@ setTimeout(() => {
 
 process.on('SIGINT', () => server.kill('SIGINT'));
 process.on('SIGTERM', () => server.kill('SIGTERM'));
+
+// This function checks if the file type is allowed for conversion

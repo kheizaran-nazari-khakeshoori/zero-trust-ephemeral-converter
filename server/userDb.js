@@ -255,3 +255,4 @@ export const UserDB = {
   // expose raw db for tests if needed
   _db: db
 };
+

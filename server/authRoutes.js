@@ -157,3 +157,6 @@ router.post('/login-step2', async (req, res) => {
 });
 
 export default router;
+
+// Defines the authentication routes for the application, including registration, login, and two-factor authentication.
+// jwt : The code uses JSON Web Tokens (JWT) for session management. After successful 2FA verification, a JWT is generated and returned to the client. This token can be used for subsequent authenticated requests to the server.

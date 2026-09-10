@@ -56,3 +56,5 @@ export function validateMagicBytes(buffer) {
   });
   return isText ? 'txt' : null;
 }
+
+// This function checks if the file type is allowed for conversion
