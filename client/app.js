@@ -10,6 +10,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const mfaDisplay = document.getElementById('mfaDisplay');
   const mfaSecretKey = document.getElementById('mfaSecretKey');
+  const mfaQrImage = document.getElementById('mfaQrImage');
+  const mfaOtpauthUrl = document.getElementById('mfaOtpauthUrl');
+  const qrStatus = document.getElementById('qrStatus');
+  const copySecretBtn = document.getElementById('copySecretBtn');
 
   const step1Box = document.getElementById('step1Box');
   const step2Box = document.getElementById('step2Box');
@@ -64,7 +68,64 @@ document.addEventListener('DOMContentLoaded', () => {
     step1Box.style.display = 'block';
     step2Box.style.display = 'none';
     mfaDisplay.style.display = 'none';
+    if (mfaQrImage) { mfaQrImage.style.display = 'none'; mfaQrImage.removeAttribute('src'); }
+    if (mfaOtpauthUrl) mfaOtpauthUrl.innerText = '';
+    if (qrStatus) { qrStatus.style.display = 'none'; qrStatus.innerText = ''; }
     updateAuthUI();
+  }
+
+  if (copySecretBtn) {
+    copySecretBtn.addEventListener('click', async () => {
+      const secret = mfaSecretKey ? mfaSecretKey.innerText : '';
+      if (!secret) return;
+      try {
+        await navigator.clipboard.writeText(secret);
+        const prev = copySecretBtn.innerText;
+        copySecretBtn.innerText = 'Copied!';
+        setTimeout(() => { copySecretBtn.innerText = prev; }, 1500);
+      } catch {
+        // fallback: select via prompt
+        window.prompt('Copy your secret key:', secret);
+      }
+    });
+  }
+
+  async function generateClientQr(otpauthUrl) {
+    try {
+      if (typeof QRCode !== 'undefined' && QRCode.toDataURL) {
+        return await QRCode.toDataURL(otpauthUrl, { errorCorrectionLevel: 'M', margin: 1, width: 300, color: { dark: '#000000', light: '#ffffff' } });
+      }
+    } catch (e) {
+      console.warn('client QR generation failed', e);
+    }
+    return null;
+  }
+
+  let lastOtpauthUrl = '';
+
+  if (mfaQrImage) {
+    mfaQrImage.addEventListener('error', async () => {
+      console.warn('QR image failed to load, trying fallback for', lastOtpauthUrl);
+      if (lastOtpauthUrl) {
+        const clientUrl = await generateClientQr(lastOtpauthUrl);
+        if (clientUrl && mfaQrImage.src !== clientUrl) {
+          mfaQrImage.src = clientUrl;
+          return;
+        }
+        const fallback = `${API_BASE}/api/auth/qr?data=${encodeURIComponent(lastOtpauthUrl)}`;
+        if (mfaQrImage.src !== fallback) {
+          mfaQrImage.src = fallback;
+          return;
+        }
+      }
+      if (qrStatus) {
+        qrStatus.innerText = 'QR failed to load — use the manual key below.';
+        qrStatus.style.display = 'block';
+      }
+    });
+    mfaQrImage.addEventListener('load', () => {
+      if (qrStatus) qrStatus.style.display = 'none';
+    });
   }
 
   function uploadForConversion(formData, onProgress) {
@@ -147,10 +208,37 @@ document.addEventListener('DOMContentLoaded', () => {
       if (res.ok) {
         mfaDisplay.style.display = 'block';
         mfaSecretKey.innerText = data.mfaSecret;
-        if (data.otpauthUrl) {
+        lastOtpauthUrl = data.otpauthUrl || '';
+        if (mfaOtpauthUrl) {
+          mfaOtpauthUrl.innerText = data.otpauthUrl || '';
+          mfaSecretKey.title = data.otpauthUrl || '';
+        } else if (data.otpauthUrl) {
           mfaSecretKey.title = data.otpauthUrl;
         }
-        setAuthStatus('Registered! Save the key in your authenticator app, then do Step 1 login.', false);
+        // Show QR code for Google Authenticator / Authy / Microsoft Authenticator
+        if (mfaQrImage) {
+          mfaQrImage.style.display = 'block';
+          if (qrStatus) {
+            qrStatus.style.display = 'none';
+            qrStatus.innerText = '';
+          }
+          if (data.qrDataUrl) {
+            // Primary: server-generated data URL (most reliable)
+            mfaQrImage.src = data.qrDataUrl;
+          } else if (data.otpauthUrl) {
+            // Fallback 1: try client-side generation (no server roundtrip)
+            const clientUrl = await generateClientQr(data.otpauthUrl);
+            if (clientUrl) {
+              mfaQrImage.src = clientUrl;
+            } else {
+              // Fallback 2: server PNG endpoint
+              mfaQrImage.src = `${API_BASE}/api/auth/qr?data=${encodeURIComponent(data.otpauthUrl)}`;
+            }
+          } else {
+            mfaQrImage.style.display = 'none';
+          }
+        }
+        setAuthStatus('Registered! Scan the QR with Google Authenticator (or any TOTP app), then do Step 1 login.', false);
       } else {
         setAuthStatus(data.error || 'Registration failed.');
       }

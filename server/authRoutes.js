@@ -4,11 +4,54 @@ import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import rateLimit from 'express-rate-limit';
+import QRCode from 'qrcode';
 import { UserDB } from './userDb.js';
 import { JWT_SECRET, AUTH_RATE_LIMIT_MAX, RATE_LIMIT_WINDOW_MS } from './config.js';
 import { validateEmail, validatePassword, validateTotpCode } from './inputValidation.js';
 
 const router = express.Router();
+
+// Utility: generate a QR image for any otpauth:// URL - NOT rate limited (image load would otherwise 429)
+// Useful as fallback for client-side rendering or for re-displaying the code.
+// GET /api/auth/qr?data=otpauth://totp/...   -> image/png
+// GET /api/auth/qr?data=...&format=json      -> { qrDataUrl }
+router.get('/qr', async (req, res) => {
+  try {
+    const data = req.query.data || req.query.otpauthUrl || req.query.url;
+    if (!data || typeof data !== 'string') {
+      return res.status(400).json({ error: 'Missing ?data=otpauth://... query parameter.' });
+    }
+    if (data.length > 1024) {
+      return res.status(400).json({ error: 'QR data too long.' });
+    }
+    if (!data.startsWith('otpauth://')) {
+      return res.status(400).json({ error: 'QR data must be an otpauth:// URL.' });
+    }
+
+    if (req.query.format === 'json') {
+      const qrDataUrl = await QRCode.toDataURL(data, {
+        errorCorrectionLevel: 'M',
+        margin: 1,
+        width: 300
+      });
+      return res.json({ qrDataUrl, otpauthUrl: data });
+    }
+
+    const pngBuffer = await QRCode.toBuffer(data, {
+      errorCorrectionLevel: 'M',
+      margin: 1,
+      width: 300,
+      color: { dark: '#000000', light: '#ffffff' }
+    });
+    res.setHeader('Content-Type', 'image/png');
+    res.setHeader('Cache-Control', 'no-store');
+    res.setHeader('Content-Length', pngBuffer.length);
+    return res.send(pngBuffer);
+  } catch (error) {
+    console.error('[qr]', error);
+    return res.status(500).json({ error: 'Failed to generate QR code.' });
+  }
+});
 
 // Stricter rate limit for auth endpoints to slow brute force
 const authLimiter = rateLimit({
@@ -55,10 +98,26 @@ router.post('/register', async (req, res) => {
 
     await UserDB.createAuditLog(user.id, 'register_success', getClientIp(req));
 
+    // Generate QR code Data URL for Google Authenticator / Authy / Microsoft Authenticator
+    let qrDataUrl = null;
+    try {
+      if (secret.otpauth_url) {
+        qrDataUrl = await QRCode.toDataURL(secret.otpauth_url, {
+          errorCorrectionLevel: 'M',
+          margin: 1,
+          width: 300,
+          color: { dark: '#000000', light: '#ffffff' }
+        });
+      }
+    } catch (qrError) {
+      console.warn('[register] QR generation failed', qrError);
+    }
+
     return res.status(201).json({
       message: 'User registered successfully!',
       mfaSecret: secret.base32,
-      otpauthUrl: secret.otpauth_url
+      otpauthUrl: secret.otpauth_url,
+      qrDataUrl
     });
   } catch (error) {
     if (error?.code === 'SQLITE_CONSTRAINT') {
