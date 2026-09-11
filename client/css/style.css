@@ -249,6 +249,74 @@ button:hover:not(:disabled) { background: var(--primary-hover); }
   opacity: 0.7;
 }
 
+/* Converter enhancements */
+.trust-bar {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  background: #0f172a;
+  border: 1px solid #1e293b;
+  border-radius: 999px;
+  padding: 0.4rem 0.85rem;
+  margin-bottom: 1rem;
+  font-size: 0.7rem;
+  color: #94a3b8;
+  letter-spacing: 0.02em;
+}
+.preview-box {
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  padding: 0.75rem;
+  max-height: 320px;
+  overflow: auto;
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+.preview-box img { max-width: 100%; border-radius: 6px; display: block; }
+.preview-box pre {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: #e2e8f0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.75rem;
+}
+.preview-box table { width: 100%; border-collapse: collapse; font-size: 0.75rem; }
+.preview-box th, .preview-box td { border: 1px solid #334155; padding: 0.35rem 0.5rem; text-align: left; }
+.preview-box th { background: #1e293b; color: #f8fafc; }
+.explain-inline {
+  margin-top: 0.5rem;
+  background: #0f172a;
+  border-left: 3px solid #38bdf8;
+  border-radius: 6px;
+  padding: 0.6rem 0.75rem;
+  font-size: 0.75rem;
+  color: #94a3b8;
+  line-height: 1.5;
+}
+.explain-inline strong { color: #e2e8f0; }
+.convert-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+}
+.convert-card {
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  padding: 0.85rem;
+}
+.convert-card h4 { margin: 0 0 0.35rem; font-size: 0.85rem; }
+.convert-card p { margin: 0; font-size: 0.7rem; color: #94a3b8; }
+.convert-card ul { margin: 0.4rem 0 0; padding-left: 1.1rem; font-size: 0.7rem; color: #94a3b8; line-height: 1.6; }
+.mini-table { width: 100%; border-collapse: collapse; font-size: 0.75rem; }
+.mini-table th, .mini-table td { border: 1px solid #334155; padding: 0.4rem 0.5rem; text-align: center; }
+.mini-table th { background: #0f172a; color: #e2e8f0; font-weight: 600; }
+.mini-table td:first-child { text-align: left; font-weight: 600; color: #f8fafc; }
+
 /* MFA display */
 .mfa-box {
   display: none;
@@ -260,6 +328,9 @@ button:hover:not(:disabled) { background: var(--primary-hover); }
 }
 
 /* Responsive */
+@media (max-width: 900px) {
+  .convert-grid { grid-template-columns: 1fr; }
+}
 @media (max-width: 720px) {
   .features { grid-template-columns: 1fr; }
   .hero h1 { font-size: 1.8rem; }

@@ -77,7 +77,6 @@ export function convertMarkdownToPdf(markdownText) {
 
 export async function convertPngToWebp(imageBuffer) {
   if (!Buffer.isBuffer(imageBuffer) || imageBuffer.length === 0) return null;
-
   try {
     return await sharp(imageBuffer, { failOnError: true, limitInputPixels: 25_000_000 })
       .webp({ quality: 85 })
@@ -87,37 +86,123 @@ export async function convertPngToWebp(imageBuffer) {
   }
 }
 
+// Generic image conversion (png/jpg/jpeg/webp/gif -> png/jpg/webp)
+export async function convertImage(imageBuffer, targetFormat) {
+  if (!Buffer.isBuffer(imageBuffer) || imageBuffer.length === 0) return null;
+  const fmt = targetFormat.toLowerCase();
+  const allowed = new Set(['png', 'jpg', 'jpeg', 'webp']);
+  if (!allowed.has(fmt)) return null;
+  const out = fmt === 'jpg' ? 'jpeg' : fmt;
+  try {
+    const pipeline = sharp(imageBuffer, { failOnError: true, limitInputPixels: 25_000_000 });
+    if (out === 'jpeg') return await pipeline.jpeg({ quality: 85 }).toBuffer();
+    if (out === 'png') return await pipeline.png().toBuffer();
+    if (out === 'webp') return await pipeline.webp({ quality: 85 }).toBuffer();
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 // Simple JSON to CSV converter in RAM
 export function convertJsonToCsv(jsonBuffer) {
   try {
     const text = Buffer.isBuffer(jsonBuffer) ? jsonBuffer.toString('utf-8') : String(jsonBuffer);
-    // Guard against huge payloads — already limited to 10MB upload but be explicit
     if (text.length > 2_000_000) return null;
     const data = JSON.parse(text);
     if (!Array.isArray(data) || data.length === 0) return null;
     if (data.length > 10_000) return null;
     if (!data.every(row => row && typeof row === 'object' && !Array.isArray(row))) return null;
-
     const headers = [...new Set(data.flatMap(row => Object.keys(row)))];
     if (headers.length === 0 || headers.length > 100) return null;
-
     const escapeCsv = value => {
       if (value === null || value === undefined) return '';
       const str = typeof value === 'object' ? JSON.stringify(value) : String(value);
       return `"${str.replace(/"/g, '""')}"`;
     };
-
     const csvRows = [headers.map(escapeCsv).join(',')];
-
     for (const row of data) {
       const values = headers.map(header => escapeCsv(row[header]));
       csvRows.push(values.join(','));
     }
-
     return csvRows.join('\n');
   } catch {
     return null;
   }
 }
 
-// Simple CSV to JSON converter in RAM
+export function convertCsvToJson(csvBuffer) {
+  try {
+    const text = Buffer.isBuffer(csvBuffer) ? csvBuffer.toString('utf-8') : String(csvBuffer);
+    if (!text.trim()) return null;
+    if (text.length > 2_000_000) return null;
+    const lines = text.replace(/^\uFEFF/, '').split(/\r?\n/).filter(l => l.trim() !== '');
+    if (lines.length < 2) return null;
+    if (lines.length > 10_001) return null;
+
+    const parseLine = (line) => {
+      const out = [];
+      let cur = '';
+      let inQuotes = false;
+      for (let i = 0; i < line.length; i++) {
+        const ch = line[i];
+        if (ch === '"') {
+          if (inQuotes && line[i + 1] === '"') { cur += '"'; i++; }
+          else inQuotes = !inQuotes;
+        } else if ((ch === ',' || ch === ';') && !inQuotes) {
+          out.push(cur);
+          cur = '';
+          // keep delimiter consistent? first delimiter wins
+        } else {
+          cur += ch;
+        }
+      }
+      out.push(cur);
+      return out.map(v => v.trim());
+    };
+
+    // detect delimiter
+    const delimComma = (lines[0].match(/,/g) || []).length;
+    const delimSemi = (lines[0].match(/;/g) || []).length;
+    // parse uniformly; parseLine handles both
+
+    const headers = parseLine(lines[0]).map(h => h.replace(/^"|"$/g, '').trim());
+    if (headers.length === 0 || headers.length > 100) return null;
+    if (headers.some(h => !h)) return null;
+
+    const rows = [];
+    for (let i = 1; i < lines.length; i++) {
+      const vals = parseLine(lines[i]);
+      // pad
+      while (vals.length < headers.length) vals.push('');
+      const obj = {};
+      headers.forEach((h, idx) => {
+        let v = vals[idx] ?? '';
+        v = v.replace(/^"|"$/g, '').replace(/""/g, '"');
+        // try coerce numbers/booleans
+        if (v === 'true') v = true;
+        else if (v === 'false') v = false;
+        else if (v !== '' && !isNaN(v) && v.trim() !== '') {
+          const num = Number(v);
+          if (String(num) === v.trim()) v = num;
+        }
+        obj[h] = v;
+      });
+      rows.push(obj);
+    }
+    return JSON.stringify(rows, null, 2);
+  } catch {
+    return null;
+  }
+}
+
+export function convertTextToTxt(textBuffer) {
+  try {
+    const text = Buffer.isBuffer(textBuffer) ? textBuffer.toString('utf-8') : String(textBuffer);
+    if (!text || !text.trim()) return null;
+    if (text.length > 5_000_000) return null;
+    return text.replace(/\r\n?/g, '\n');
+  } catch {
+    return null;
+  }
+}

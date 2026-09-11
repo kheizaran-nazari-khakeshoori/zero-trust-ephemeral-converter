@@ -1,4 +1,4 @@
-export const ALLOWED_TARGET_FORMATS = new Set(['html', 'pdf', 'csv', 'webp']);
+export const ALLOWED_TARGET_FORMATS = new Set(['html', 'pdf', 'csv', 'json', 'txt', 'webp', 'png', 'jpg', 'jpeg']);
 
 export function validateTargetFormat(targetFormat) {
   return typeof targetFormat === 'string'

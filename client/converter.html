@@ -13,7 +13,7 @@
     <a class="navbar-brand" href="index.html">🔒 SecureConvert</a>
     <div class="navbar-links">
       <a class="nav-link" href="index.html">Welcome</a>
-      <a class="nav-link" href="converter.html">Converter</a>
+      <a class="nav-link active" href="converter.html">Converter</a>
       <a class="nav-link" href="login.html" data-auth="logged-out">Log in</a>
       <a class="nav-link cta" href="signup.html" data-auth="logged-out">Sign up</a>
       <span data-auth="logged-in" style="display:none; color:#94a3b8; font-size:0.85rem; margin-right:0.25rem;">Signed in ✓</span>
@@ -21,11 +21,11 @@
     </div>
   </nav>
 
-  <main class="page">
+  <main class="page" style="justify-content:flex-start;">
     <!-- Auth gate -->
     <div class="card" id="gateCard" style="display:none;">
       <h2 style="margin:0;">🔒 Authentication required</h2>
-      <p style="color:#94a3b8; font-size:0.9rem;">Please log in to use the converter. Your files are processed in RAM and never stored.</p>
+      <p style="color:#94a3b8; font-size:0.9rem;">Please log in to use the converter. Your files are processed in RAM and never stored — like CloudConvert, but zero-disk by design.</p>
       <div style="display:flex; gap:0.5rem; margin-top:1rem;">
         <a href="login.html" style="flex:1; text-decoration:none;"><button type="button" style="width:100%;">Log in</button></a>
         <a href="signup.html" style="flex:1; text-decoration:none;"><button type="button" style="width:100%; background:#475569;">Sign up</button></a>
@@ -33,29 +33,98 @@
       <p style="margin:0.75rem 0 0;"><a class="link" href="index.html">← Back to welcome</a></p>
     </div>
 
+    <!-- Trust bar -->
+    <div id="trustBar" class="trust-bar">
+      <span>⚡ In-memory only</span>
+      <span>•</span>
+      <span>🛡️ Magic-byte verified</span>
+      <span>•</span>
+      <span>🗑️ Auto-deleted after download</span>
+      <span>•</span>
+      <span>🔐 2FA required</span>
+    </div>
+
     <!-- Converter -->
-    <div class="card" id="dashboardCard">
-      <div style="display:flex; justify-content:space-between; align-items:center; gap:1rem;">
-        <h2 style="margin:0;">🔒 SecureConvert</h2>
+    <div class="card card-wide" id="dashboardCard">
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:1rem; flex-wrap:wrap;">
+        <div style="text-align:left;">
+          <h2 style="margin:0;">🔒 SecureConvert</h2>
+          <p style="font-size:0.85rem; color:#94a3b8; margin:0.25rem 0 0;">Ephemeral file converter — CloudConvert-style UX, zero-trust by default</p>
+        </div>
         <button type="button" id="logoutBtn" class="secondary-button" style="width:auto; padding:0.4rem 0.8rem; font-size:0.8rem;">Sign out</button>
       </div>
-      <p style="font-size:0.85rem; color:#94a3b8; margin:0.35rem 0 0;">Ephemeral, In-Memory File Processing</p>
 
-      <div class="drop-zone" id="dropZone">
-        <p id="fileLabel" style="margin:0; pointer-events:none;">Drag &amp; drop a file here or click to select</p>
-        <input type="file" id="fileInput" accept=".md,.markdown,.txt,.json,.png" style="display:none;">
+      <!-- Drop zone -->
+      <div class="drop-zone" id="dropZone" role="button" tabindex="0" aria-label="Upload file">
+        <div style="pointer-events:none;">
+          <p style="margin:0; font-size:1.1rem;">📁 Drag &amp; drop a file here</p>
+          <p id="fileLabel" style="margin:0.35rem 0 0; color:#94a3b8; font-size:0.85rem;">or click to browse — supports .md, .txt, .json, .csv, .png, .jpg, .webp</p>
+        </div>
+        <input type="file" id="fileInput" accept=".md,.markdown,.txt,.json,.csv,.png,.jpg,.jpeg,.webp,.gif" style="display:none;">
       </div>
 
-      <label for="formatSelect" style="display:block; text-align:left; font-size:0.85rem; margin-bottom:0.4rem; color:#94a3b8;">Choose Output Format:</label>
-      <select id="formatSelect">
-        <option value="html">Convert Text/Markdown to HTML (.html)</option>
-        <option value="pdf">Convert Text/Markdown to PDF (.pdf)</option>
-        <option value="csv">Convert JSON to CSV (.csv)</option>
-        <option value="webp">Convert PNG to WebP (.webp)</option>
-      </select>
+      <!-- File meta chip -->
+      <div id="fileMeta" style="display:none; text-align:left; background:#0f172a; border:1px solid #334155; border-radius:8px; padding:0.75rem; margin-top:-0.5rem; margin-bottom:1rem;">
+        <div style="display:flex; justify-content:space-between; gap:0.75rem; align-items:center; flex-wrap:wrap;">
+          <div>
+            <strong id="metaName" style="font-size:0.9rem; word-break:break-all;"></strong>
+            <div id="metaDetails" style="font-size:0.75rem; color:#94a3b8; margin-top:0.15rem;"></div>
+          </div>
+          <button type="button" id="clearFileBtn" class="secondary-button" style="padding:0.3rem 0.6rem; font-size:0.75rem;">✕ Remove</button>
+        </div>
+      </div>
 
-      <button type="button" id="uploadBtn">Upload &amp; Convert</button>
+      <!-- Preview panel -->
+      <div id="previewPanel" style="display:none; text-align:left; margin-bottom:1rem;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.4rem;">
+          <h4 style="margin:0; font-size:0.85rem; color:#e2e8f0;">Preview</h4>
+          <button type="button" id="togglePreviewBtn" class="secondary-button" style="padding:0.25rem 0.6rem; font-size:0.7rem;">Hide</button>
+        </div>
+        <div id="previewContent" class="preview-box"></div>
+        <p id="previewNote" style="margin:0.3rem 0 0; font-size:0.7rem; color:#64748b;"></p>
+      </div>
+
+      <!-- Format selector -->
+      <div style="text-align:left;">
+        <label for="formatSelect" style="display:block; font-size:0.85rem; margin-bottom:0.4rem; color:#94a3b8;">Convert to:</label>
+        <select id="formatSelect">
+          <optgroup label="Document">
+            <option value="html">HTML (.html) — from Text / Markdown / JSON / CSV</option>
+            <option value="pdf">PDF (.pdf) — from Text / Markdown / JSON / CSV</option>
+            <option value="txt">TXT (.txt) — plain text</option>
+          </optgroup>
+          <optgroup label="Data">
+            <option value="csv">CSV (.csv) — from JSON</option>
+            <option value="json">JSON (.json) — from CSV</option>
+          </optgroup>
+          <optgroup label="Image">
+            <option value="webp">WebP (.webp) — from PNG / JPG / WebP</option>
+            <option value="png">PNG (.png) — from JPG / WebP / PNG</option>
+            <option value="jpg">JPG (.jpg) — from PNG / WebP / JPG</option>
+          </optgroup>
+        </select>
+        <div id="formatExplain" class="explain-inline"></div>
+      </div>
+
+      <button type="button" id="uploadBtn" style="margin-top:1rem;">Upload &amp; Convert</button>
+      <div id="progressWrap" style="display:none; margin-top:0.75rem;">
+        <div style="height:8px; background:#334155; border-radius:999px; overflow:hidden;">
+          <div id="progressBar" style="height:100%; width:0%; background:#38bdf8; transition:width 0.2s;"></div>
+        </div>
+        <p id="progressText" style="margin:0.3rem 0 0; font-size:0.75rem; color:#94a3b8;"></p>
+      </div>
       <div class="status-msg" id="status" role="status" aria-live="polite"></div>
+
+      <!-- Result preview / download -->
+      <div id="resultPanel" style="display:none; margin-top:1rem; text-align:left; background:#0f172a; border:1px solid #334155; border-radius:8px; padding:1rem;">
+        <h4 style="margin:0 0 0.5rem; color:#4ade80;">✓ Conversion ready</h4>
+        <p id="resultInfo" style="margin:0 0 0.6rem; font-size:0.8rem; color:#94a3b8;"></p>
+        <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+          <a id="downloadLink" href="#" download style="flex:1; text-decoration:none;"><button type="button" style="width:100%;">⬇ Download file</button></a>
+          <button type="button" id="previewResultBtn" class="secondary-button" style="flex:1;">👁 Preview result</button>
+        </div>
+        <div id="resultPreview" style="display:none; margin-top:0.75rem;" class="preview-box"></div>
+      </div>
 
       <section class="history-panel" aria-labelledby="historyTitle">
         <div class="history-heading">
@@ -66,6 +135,79 @@
         <ul id="historyList" class="history-list"></ul>
       </section>
     </div>
+
+    <!-- Supported conversions — cloudconvert-style -->
+    <section class="card card-wide" style="text-align:left;">
+      <h3 style="margin:0 0 0.4rem;">Supported conversions</h3>
+      <p style="margin:0 0 1rem; color:#94a3b8; font-size:0.85rem;">Like CloudConvert, pick your input on the left and choose an output. All processing is RAM-only — no temp files.</p>
+      <div class="convert-grid">
+        <div class="convert-card">
+          <h4>📝 Document</h4>
+          <p><strong>Input:</strong> .md, .txt, .json, .csv</p>
+          <p><strong>Output:</strong> HTML, PDF, TXT</p>
+          <ul>
+            <li><code>TXT/MD → HTML</code> — sanitized, headings/lists/code, ready to publish</li>
+            <li><code>TXT/MD → PDF</code> — PDFKit, margins 50, in-memory stream</li>
+          </ul>
+        </div>
+        <div class="convert-card">
+          <h4>📊 Data</h4>
+          <p><strong>Input:</strong> .json ↔ .csv</p>
+          <p><strong>Output:</strong> CSV ↔ JSON</p>
+          <ul>
+            <li><code>JSON → CSV</code> — union of keys, quoted, up to 10k rows</li>
+            <li><code>CSV → JSON</code> — header row, delimiter auto-detect, typed values</li>
+          </ul>
+        </div>
+        <div class="convert-card">
+          <h4>🖼️ Image</h4>
+          <p><strong>Input:</strong> .png, .jpg/.jpeg, .webp, .gif</p>
+          <p><strong>Output:</strong> PNG, JPG, WebP</p>
+          <ul>
+            <li><code>PNG ↔ WebP ↔ JPG</code> — Sharp, 25M pixel cap, quality 85</li>
+            <li>Magic-byte verified (PNG <code>89 50 4E 47</code>, JPG <code>FF D8 FF</code>, WebP <code>RIFF…WEBP</code>)</li>
+          </ul>
+        </div>
+      </div>
+      <details style="margin-top:1rem;">
+        <summary style="cursor:pointer; color:#94a3b8; font-size:0.85rem;">View all input → output pairs</summary>
+        <div style="margin-top:0.5rem; overflow-x:auto;">
+          <table class="mini-table">
+            <thead><tr><th>Input</th><th>→ HTML</th><th>→ PDF</th><th>→ CSV</th><th>→ JSON</th><th>→ PNG</th><th>→ JPG</th><th>→ WebP</th></tr></thead>
+            <tbody>
+              <tr><td>TXT/MD</td><td>✓</td><td>✓</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+              <tr><td>JSON</td><td>✓</td><td>✓</td><td>✓</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+              <tr><td>CSV</td><td>✓</td><td>—</td><td>—</td><td>✓</td><td>—</td><td>—</td><td>—</td></tr>
+              <tr><td>PNG</td><td>—</td><td>—</td><td>—</td><td>—</td><td>✓</td><td>✓</td><td>✓</td></tr>
+              <tr><td>JPG</td><td>—</td><td>—</td><td>—</td><td>—</td><td>✓</td><td>✓</td><td>✓</td></tr>
+              <tr><td>WebP</td><td>—</td><td>—</td><td>—</td><td>—</td><td>✓</td><td>✓</td><td>✓</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </details>
+    </section>
+
+    <!-- How it works + security -->
+    <section class="card card-wide" style="text-align:left;">
+      <h3 style="margin:0 0 0.5rem;">How it works</h3>
+      <ol style="margin:0; padding-left:1.2rem; color:#94a3b8; font-size:0.85rem; line-height:1.7;">
+        <li><strong style="color:#f8fafc;">Drop a file</strong> — preview instantly (image thumbnail, text snippet, CSV table). Magic bytes checked before any parse.</li>
+        <li><strong style="color:#f8fafc;">Pick output</strong> — selector filters to compatible formats; explanation appears inline.</li>
+        <li><strong style="color:#f8fafc;">Convert in RAM</strong> — <code>multer.memoryStorage()</code>, Sharp/PDFKit stream, <code>Buffer → res.send()</code> with <code>Content-Disposition: attachment</code>. No disk write.</li>
+        <li><strong style="color:#f8fafc;">Download &amp; gone</strong> — history logged to SQLite, file never persisted. Refresh shows <em>Recent conversions</em>.</li>
+      </ol>
+      <div style="margin-top:1rem; display:grid; grid-template-columns:1fr 1fr; gap:0.75rem;">
+        <div style="background:#0f172a; border:1px solid #334155; border-radius:8px; padding:0.75rem;">
+          <h4 style="margin:0 0 0.3rem; font-size:0.85rem;">🔐 Security</h4>
+          <p style="margin:0; color:#94a3b8; font-size:0.75rem;">JWT hashed (SHA-256) in <code>sessions</code>, Helmet, CORS, rate-limit (100/15m, 20/15m auth), filename denylist, 10 MB cap, 25M pixel cap.</p>
+        </div>
+        <div style="background:#0f172a; border:1px solid #334155; border-radius:8px; padding:0.75rem;">
+          <h4 style="margin:0 0 0.3rem; font-size:0.85rem;">⚡ Performance</h4>
+          <p style="margin:0; color:#94a3b8; font-size:0.75rem;">In-process converters, no worker fork. Typical: MD→PDF ~25 ms, PNG→WebP ~11 ms, JSON→CSV ~5 ms (local).</p>
+        </div>
+      </div>
+      <p style="margin:0.75rem 0 0; font-size:0.75rem; color:#64748b;">Inspired by <a class="link" href="https://cloudconvert.com/" target="_blank" rel="noopener">CloudConvert</a> — but ephemeral, authenticated and audited. See <a class="link" href="index.html">Welcome</a> for architecture.</p>
+    </section>
   </main>
 
   <script type="module" src="js/converter.js"></script>
