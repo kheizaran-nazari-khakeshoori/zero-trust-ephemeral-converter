@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="api-base" content="">
+  <meta name="color-scheme" content="dark">
+  <title>SecureConvert | Log in</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <nav class="navbar" aria-label="Main navigation">
+    <a class="navbar-brand" href="index.html">🔒 SecureConvert</a>
+    <div class="navbar-links">
+      <a class="nav-link" href="index.html">Welcome</a>
+      <a class="nav-link" href="converter.html">Converter</a>
+      <a class="nav-link" href="login.html">Log in</a>
+      <a class="nav-link cta" href="signup.html" data-auth="logged-out">Sign up</a>
+      <button type="button" id="navLogoutBtn" class="secondary-button" style="display:none; width:auto; padding:0.4rem 0.8rem; font-size:0.8rem;">Sign out</button>
+    </div>
+  </nav>
+
+  <main class="page">
+    <div class="card" id="authCard">
+      <div style="display:flex; justify-content: space-between; align-items:center; gap:1rem;">
+        <h2 style="margin:0;">🔐 Log in</h2>
+        <span style="font-size:0.75rem; color:#94a3b8;">Step 1 of 2</span>
+      </div>
+      <p class="lead" style="text-align:left; margin:0.5rem 0 0;">Password + 6-digit TOTP code</p>
+
+      <div id="step1Box" style="margin-top:1rem; text-align:left;">
+        <label for="authEmail" style="display:block; font-size:0.8rem; color:#94a3b8; margin-bottom:0.3rem;">Email</label>
+        <input type="email" id="authEmail" placeholder="you@example.com" autocomplete="email">
+        <label for="authPassword" style="display:block; font-size:0.8rem; color:#94a3b8; margin-bottom:0.3rem;">Password</label>
+        <input type="password" id="authPassword" placeholder="Your password" autocomplete="current-password">
+        <button type="button" id="login1Btn">Continue → Verify code</button>
+        <p style="margin:0.75rem 0 0; font-size:0.8rem; color:#94a3b8; text-align:center;">
+          No account? <a class="link" href="signup.html">Create one</a> • <a class="link" href="index.html">Back to welcome</a>
+        </p>
+      </div>
+
+      <div id="step2Box" style="display:none; margin-top:1rem;">
+        <p style="font-size:0.85rem; color:#94a3b8;">Enter 6-digit TOTP code from your Authenticator App:</p>
+        <input type="text" id="totpCode" placeholder="123456" maxlength="6" inputmode="numeric" autocomplete="one-time-code">
+        <button type="button" id="login2Btn">Verify &amp; sign in</button>
+        <button type="button" id="backToStep1Btn" class="secondary-button" style="margin-top:0.5rem; width:100%;">← Back</button>
+        <p style="margin:0.75rem 0 0; font-size:0.75rem; color:#64748b;">Code changes every 30 seconds. If expired, enter the next one.</p>
+      </div>
+
+      <div class="status-msg" id="authStatus" role="status" aria-live="polite"></div>
+
+      <div id="alreadyLoggedIn" style="display:none; margin-top:1rem; padding:1rem; background:#334155; border-radius:8px;">
+        <p style="margin:0 0 0.5rem; color:#4ade80; font-weight:600;">You are already signed in ✓</p>
+        <div style="display:flex; gap:0.5rem;">
+          <a href="converter.html" class="nav-link cta" style="flex:1; text-align:center; display:inline-block; padding:0.6rem;">Go to Converter</a>
+          <button type="button" id="logoutInlineBtn" class="secondary-button" style="flex:1;">Sign out</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script type="module" src="js/login.js"></script>
+</body>
+</html>

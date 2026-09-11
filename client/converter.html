@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="api-base" content="">
+  <meta name="color-scheme" content="dark">
+  <title>SecureConvert | Converter</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <nav class="navbar" aria-label="Main navigation">
+    <a class="navbar-brand" href="index.html">🔒 SecureConvert</a>
+    <div class="navbar-links">
+      <a class="nav-link" href="index.html">Welcome</a>
+      <a class="nav-link" href="converter.html">Converter</a>
+      <a class="nav-link" href="login.html" data-auth="logged-out">Log in</a>
+      <a class="nav-link cta" href="signup.html" data-auth="logged-out">Sign up</a>
+      <span data-auth="logged-in" style="display:none; color:#94a3b8; font-size:0.85rem; margin-right:0.25rem;">Signed in ✓</span>
+      <button type="button" id="navLogoutBtn" class="secondary-button" style="display:none; width:auto; padding:0.4rem 0.8rem; font-size:0.8rem;">Sign out</button>
+    </div>
+  </nav>
+
+  <main class="page">
+    <!-- Auth gate -->
+    <div class="card" id="gateCard" style="display:none;">
+      <h2 style="margin:0;">🔒 Authentication required</h2>
+      <p style="color:#94a3b8; font-size:0.9rem;">Please log in to use the converter. Your files are processed in RAM and never stored.</p>
+      <div style="display:flex; gap:0.5rem; margin-top:1rem;">
+        <a href="login.html" style="flex:1; text-decoration:none;"><button type="button" style="width:100%;">Log in</button></a>
+        <a href="signup.html" style="flex:1; text-decoration:none;"><button type="button" style="width:100%; background:#475569;">Sign up</button></a>
+      </div>
+      <p style="margin:0.75rem 0 0;"><a class="link" href="index.html">← Back to welcome</a></p>
+    </div>
+
+    <!-- Converter -->
+    <div class="card" id="dashboardCard">
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:1rem;">
+        <h2 style="margin:0;">🔒 SecureConvert</h2>
+        <button type="button" id="logoutBtn" class="secondary-button" style="width:auto; padding:0.4rem 0.8rem; font-size:0.8rem;">Sign out</button>
+      </div>
+      <p style="font-size:0.85rem; color:#94a3b8; margin:0.35rem 0 0;">Ephemeral, In-Memory File Processing</p>
+
+      <div class="drop-zone" id="dropZone">
+        <p id="fileLabel" style="margin:0; pointer-events:none;">Drag &amp; drop a file here or click to select</p>
+        <input type="file" id="fileInput" accept=".md,.markdown,.txt,.json,.png" style="display:none;">
+      </div>
+
+      <label for="formatSelect" style="display:block; text-align:left; font-size:0.85rem; margin-bottom:0.4rem; color:#94a3b8;">Choose Output Format:</label>
+      <select id="formatSelect">
+        <option value="html">Convert Text/Markdown to HTML (.html)</option>
+        <option value="pdf">Convert Text/Markdown to PDF (.pdf)</option>
+        <option value="csv">Convert JSON to CSV (.csv)</option>
+        <option value="webp">Convert PNG to WebP (.webp)</option>
+      </select>
+
+      <button type="button" id="uploadBtn">Upload &amp; Convert</button>
+      <div class="status-msg" id="status" role="status" aria-live="polite"></div>
+
+      <section class="history-panel" aria-labelledby="historyTitle">
+        <div class="history-heading">
+          <h3 id="historyTitle">Recent conversions</h3>
+          <button type="button" id="refreshHistoryBtn" class="secondary-button">Refresh</button>
+        </div>
+        <p id="historyStatus" class="history-status">Loading…</p>
+        <ul id="historyList" class="history-list"></ul>
+      </section>
+    </div>
+  </main>
+
+  <script type="module" src="js/converter.js"></script>
+</body>
+</html>

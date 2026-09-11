@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="api-base" content="">
+  <meta name="color-scheme" content="dark">
+  <title>SecureConvert | Sign up</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <nav class="navbar" aria-label="Main navigation">
+    <a class="navbar-brand" href="index.html">🔒 SecureConvert</a>
+    <div class="navbar-links">
+      <a class="nav-link" href="index.html">Welcome</a>
+      <a class="nav-link" href="converter.html">Converter</a>
+      <a class="nav-link" href="login.html">Log in</a>
+      <a class="nav-link" href="signup.html">Sign up</a>
+      <button type="button" id="navLogoutBtn" class="secondary-button" style="display:none; width:auto; padding:0.4rem 0.8rem; font-size:0.8rem;">Sign out</button>
+    </div>
+  </nav>
+
+  <main class="page">
+    <div class="card">
+      <h2 style="margin:0;">Create account</h2>
+      <p class="lead" style="margin:0.4rem 0 0;">You'll get a QR code for your authenticator app</p>
+
+      <div style="margin-top:1.25rem; text-align:left;">
+        <label for="authEmail" style="display:block; font-size:0.8rem; color:#94a3b8; margin-bottom:0.3rem;">Email</label>
+        <input type="email" id="authEmail" placeholder="you@example.com" autocomplete="email">
+        <label for="authPassword" style="display:block; font-size:0.8rem; color:#94a3b8; margin-bottom:0.3rem;">Password (min 8 chars)</label>
+        <input type="password" id="authPassword" placeholder="Choose a strong password" autocomplete="new-password">
+        <button type="button" id="regBtn">Create account</button>
+        <p style="margin:0.75rem 0 0; font-size:0.8rem; color:#94a3b8; text-align:center;">
+          Already have an account? <a class="link" href="login.html">Log in</a> • <a class="link" href="index.html">Welcome</a>
+        </p>
+      </div>
+
+      <div class="status-msg" id="authStatus" role="status" aria-live="polite"></div>
+
+      <div id="mfaDisplay" class="mfa-box" style="margin-top:1.25rem;">
+        <p style="margin:0 0 0.6rem; color:#e2e8f0; font-size:0.9rem; font-weight:600;">Scan with Google Authenticator</p>
+        <p style="margin:0 0 0.75rem; color:#94a3b8; font-size:0.75rem;">Use Google Authenticator, Authy, Microsoft Authenticator or any TOTP app</p>
+        <div id="qrWrapper" style="display:flex; justify-content:center; margin-bottom:0.75rem;">
+          <img id="mfaQrImage" alt="TOTP QR code — scan with authenticator app" style="display:none; width:180px; height:180px; background:white; padding:8px; border-radius:8px; image-rendering:pixelated;" />
+        </div>
+        <p id="qrStatus" style="margin:0 0 0.5rem; color:#64748b; font-size:0.72rem; display:none;"></p>
+        <div style="background:#1e293b; border-radius:6px; padding:0.6rem; text-align:left;">
+          <p style="margin:0 0 0.25rem; color:#94a3b8; font-size:0.75rem; text-transform:uppercase; letter-spacing:0.04em;">Manual entry key</p>
+          <div style="display:flex; align-items:center; gap:0.5rem;">
+            <strong id="mfaSecretKey" style="color:#38bdf8; font-size:0.95rem; word-break:break-all; flex:1;"></strong>
+            <button type="button" id="copySecretBtn" title="Copy secret" style="width:auto; padding:0.35rem 0.6rem; font-size:0.75rem; background:#475569;">Copy</button>
+          </div>
+          <p style="margin:0.5rem 0 0; color:#64748b; font-size:0.7rem;">If you can't scan, enter this key manually in your app. Keep it safe — you need it for every login.</p>
+        </div>
+        <details style="margin-top:0.6rem; text-align:left;">
+          <summary style="cursor:pointer; color:#94a3b8; font-size:0.75rem;">Show otpauth URL (advanced)</summary>
+          <code id="mfaOtpauthUrl" style="display:block; margin-top:0.4rem; word-break:break-all; font-size:0.65rem; color:#94a3b8; background:#1e293b; padding:0.4rem; border-radius:4px;"></code>
+        </details>
+        <div style="margin-top:1rem; display:flex; gap:0.5rem;">
+          <a href="login.html" style="flex:1; text-decoration:none;"><button type="button" style="width:100%;">Continue to Log in →</button></a>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+  <script type="module" src="js/signup.js"></script>
+</body>
+</html>
