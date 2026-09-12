@@ -10,7 +10,7 @@
 </head>
 <body>
   <nav class="navbar" aria-label="Main navigation">
-    <a class="navbar-brand" href="index.html">🔒 SecureConvert</a>
+    <a class="navbar-brand" href="index.html"> SecureConvert</a>
     <div class="navbar-links">
       <a class="nav-link" href="index.html">Welcome</a>
       <a class="nav-link active" href="converter.html">Converter</a>
@@ -24,7 +24,7 @@
   <main class="page" style="justify-content:flex-start;">
     <!-- Auth gate -->
     <div class="card" id="gateCard" style="display:none;">
-      <h2 style="margin:0;">🔒 Authentication required</h2>
+      <h2 style="margin:0;">Authentication required</h2>
       <p style="color:#94a3b8; font-size:0.9rem;">Please log in to use the converter. Your files are processed in RAM and never stored — like CloudConvert, but zero-disk by design.</p>
       <div style="display:flex; gap:0.5rem; margin-top:1rem;">
         <a href="login.html" style="flex:1; text-decoration:none;"><button type="button" style="width:100%;">Log in</button></a>
@@ -35,20 +35,20 @@
 
     <!-- Trust bar -->
     <div id="trustBar" class="trust-bar">
-      <span>⚡ In-memory only</span>
+      <span>In-memory only</span>
       <span>•</span>
-      <span>🛡️ Magic-byte verified</span>
+      <span> Magic-byte verified</span>
       <span>•</span>
-      <span>🗑️ Auto-deleted after download</span>
+      <span> Auto-deleted after download</span>
       <span>•</span>
-      <span>🔐 2FA required</span>
+      <span> 2FA required</span>
     </div>
 
     <!-- Converter -->
     <div class="card card-wide" id="dashboardCard">
       <div style="display:flex; justify-content:space-between; align-items:center; gap:1rem; flex-wrap:wrap;">
         <div style="text-align:left;">
-          <h2 style="margin:0;">🔒 SecureConvert</h2>
+          <h2 style="margin:0;"> SecureConvert</h2>
           <p style="font-size:0.85rem; color:#94a3b8; margin:0.25rem 0 0;">Ephemeral file converter — CloudConvert-style UX, zero-trust by default</p>
         </div>
         <button type="button" id="logoutBtn" class="secondary-button" style="width:auto; padding:0.4rem 0.8rem; font-size:0.8rem;">Sign out</button>
@@ -109,7 +109,7 @@
       <button type="button" id="uploadBtn" style="margin-top:1rem;">Upload &amp; Convert</button>
       <div id="progressWrap" style="display:none; margin-top:0.75rem;">
         <div style="height:8px; background:#334155; border-radius:999px; overflow:hidden;">
-          <div id="progressBar" style="height:100%; width:0%; background:#38bdf8; transition:width 0.2s;"></div>
+          <div id="progressBar" style="height:100%; width:0%; background:#f838f2; transition:width 0.2s;"></div>
         </div>
         <p id="progressText" style="margin:0.3rem 0 0; font-size:0.75rem; color:#94a3b8;"></p>
       </div>

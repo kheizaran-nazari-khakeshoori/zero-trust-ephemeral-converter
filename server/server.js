@@ -252,4 +252,4 @@ if (process.env.NODE_ENV !== 'test') {
 
 export default app;
 
-// The main application server that handles all API requests and serves the frontend.
+// The main application server that handles all API requests 
